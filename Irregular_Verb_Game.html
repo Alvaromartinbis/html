@@ -1,0 +1,271 @@
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Irregular Verbs Game</title>
+            <script src="https://cdn.tailwindcss.com"></script>
+        </head>
+        <body class="bg-blue-50 min-h-screen flex flex-col items-center justify-center p-4">
+        
+            <!-- Página inicial -->
+            <div id="start-screen" class="text-center">
+                <h1 class="text-4xl font-bold mb-4">Irregular Verbs Practice</h1>
+                <button onclick="startGame()" class="bg-green-500 text-white px-4 py-2 rounded-lg text-lg font-semibold mb-4 hover:bg-green-600">Press Start</button>
+                <button onclick="showPreviousResults()" class="bg-blue-500 text-white px-4 py-2 rounded-lg text-lg font-semibold hover:bg-blue-600">Previous Results</button>
+            </div>
+        
+            <!-- Juego -->
+            <div id="game-screen" class="hidden w-full max-w-3xl mx-auto">
+                <h2 class="text-2xl font-bold mb-4 text-center">Write the Past Forms</h2>
+                <div id="verb-list" class="bg-white shadow-md rounded-lg p-6 grid grid-cols-1 gap-4"></div>
+                <button onclick="submitAnswers()" class="bg-blue-500 text-white px-6 py-2 rounded-lg text-lg font-semibold mt-6 hover:bg-blue-600 block mx-auto">Submit</button>
+            </div>
+        
+            <!-- Resultados actuales -->
+            <div id="results-screen" class="hidden text-center">
+                <h2 class="text-2xl font-bold mb-4">Results</h2>
+                <ul id="results-list" class="list-none text-left mx-auto max-w-2xl"></ul>
+                <h3 id="score" class="text-xl font-bold mt-4">Score: 0</h3>
+                <div class="mt-6">
+                    <button onclick="goToStart()" class="bg-green-500 text-white px-6 py-2 rounded-lg text-lg font-semibold hover:bg-green-600 mr-4">Go Back</button>
+                    <button onclick="retryGame()" class="bg-yellow-500 text-white px-6 py-2 rounded-lg text-lg font-semibold hover:bg-yellow-600">Retry</button>
+                </div>
+            </div>
+        
+            <!-- Resultados anteriores -->
+            <div id="previous-results-screen" class="hidden text-center">
+                <h2 class="text-2xl font-bold mb-4">Previous Results</h2>
+                <ul id="previous-results-list" class="list-none text-left mx-auto max-w-2xl"></ul>
+                <button onclick="goToStart()" class="bg-green-500 text-white px-6 py-2 rounded-lg text-lg font-semibold hover:bg-green-600">Go Back</button>
+            </div>
+        
+            <script>
+                const verbs = [
+                { infinitive: "be", past: "was/were", participle: "been", translation: "ser o estar" },
+                { infinitive: "beat", past: "beat", participle: "beaten", translation: "golpear, derrotar" },
+                { infinitive: "become", past: "became", participle: "become", translation: "llegar a ser, convertirse" },
+                { infinitive: "begin", past: "began", participle: "begun", translation: "empezar" },
+                { infinitive: "bend", past: "bent", participle: "bent", translation: "doblar" },
+                { infinitive: "bite", past: "bit", participle: "bitten", translation: "morder" },
+                { infinitive: "bleed", past: "bled", participle: "bled", translation: "sangrar" },
+                { infinitive: "blow", past: "blew", participle: "blown", translation: "soplar" },
+                { infinitive: "break", past: "broke", participle: "broken", translation: "romper" },
+                { infinitive: "bring", past: "brought", participle: "brought", translation: "traer" },
+                { infinitive: "build", past: "built", participle: "built", translation: "construir" },
+                { infinitive: "burn", past: "burnt/burned", participle: "burnt/burned", translation: "quemar, arder" },
+                { infinitive: "buy", past: "bought", participle: "bought", translation: "comprar" },
+                { infinitive: "catch", past: "caught", participle: "caught", translation: "coger o atrapar" },
+                { infinitive: "choose", past: "chose", participle: "chosen", translation: "elegir" },
+                { infinitive: "come", past: "came", participle: "come", translation: "venir" },
+                { infinitive: "cost", past: "cost", participle: "cost", translation: "costar" },
+                { infinitive: "cut", past: "cut", participle: "cut", translation: "cortar" },
+                { infinitive: "deal", past: "dealt", participle: "dealt", translation: "tratar" },
+                { infinitive: "dig", past: "dug", participle: "dug", translation: "cavar" },
+                { infinitive: "hold", past: "held", participle: "held", translation: "sostener" },
+                { infinitive: "hurt", past: "hurt", participle: "hurt", translation: "herir, doler, hacer daño" },
+                { infinitive: "keep", past: "kept", participle: "kept", translation: "guardar" },
+                { infinitive: "know", past: "knew", participle: "known", translation: "conocer, saber" },
+                { infinitive: "lay", past: "laid", participle: "laid", translation: "colocar, extender" },
+                { infinitive: "lead", past: "led", participle: "led", translation: "liderar, conducir, guiar" },
+                { infinitive: "learn", past: "learnt/learned", participle: "learnt/learned", translation: "aprender" },
+                { infinitive: "leave", past: "left", participle: "left", translation: "dejar, abandonar, marcharse" },
+                { infinitive: "let", past: "let", participle: "let", translation: "permitir, alquilar" },
+                { infinitive: "lie", past: "lay", participle: "lain", translation: "tumbarse" },
+                { infinitive: "light", past: "lit", participle: "lit", translation: "alumbrar, encender" },
+                { infinitive: "lose", past: "lost", participle: "lost", translation: "perder" },
+                { infinitive: "make", past: "made", participle: "made", translation: "hacer, fabricar" },
+                { infinitive: "mean", past: "meant", participle: "meant", translation: "querer decir o significar" },
+                { infinitive: "meet", past: "met", participle: "met", translation: "conocer, reunirse, encontrarse" },
+                { infinitive: "pay", past: "paid", participle: "paid", translation: "pagar" },
+                { infinitive: "put", past: "put", participle: "put", translation: "poner, colocar" },
+                { infinitive: "read", past: "read", participle: "read", translation: "leer" },
+                { infinitive: "ride", past: "rode", participle: "ridden", translation: "montar" },
+                { infinitive: "see", past: "saw", participle: "seen", translation: "ver" },
+                { infinitive: "sell", past: "sold", participle: "sold", translation: "vender" },
+                { infinitive: "send", past: "sent", participle: "sent", translation: "enviar" },
+                { infinitive: "shake", past: "shook", participle: "shaken", translation: "agitar" },
+                { infinitive: "shine", past: "shone", participle: "shone", translation: "brillar" },
+                { infinitive: "shoot", past: "shot", participle: "shot", translation: "disparar" },
+                { infinitive: "show", past: "showed", participle: "showed/shown", translation: "mostrar" },
+                { infinitive: "shut", past: "shut", participle: "shut", translation: "cerrar, callarse" },
+                { infinitive: "sing", past: "sang", participle: "sung", translation: "cantar" },
+                { infinitive: "sit", past: "sat", participle: "sat", translation: "sentarse" },
+                { infinitive: "sleep", past: "slept", participle: "slept", translation: "dormir" },
+                { infinitive: "smell", past: "smelt/smelled", participle: "smelt/smelled", translation: "oler" },
+                { infinitive: "speak", past: "spoke", participle: "spoken", translation: "hablar" },
+                { infinitive: "spend", past: "spent", participle: "spent", translation: "pasar el tiempo o gastar dinero" },
+                { infinitive: "stand", past: "stood", participle: "stood", translation: "estar de pie" },
+                { infinitive: "do", past: "did", participle: "done", translation: "hacer" },
+                { infinitive: "draw", past: "drew", participle: "drawn", translation: "dibujar" },
+                { infinitive: "dream", past: "dreamt/dreamed", participle: "dreamt/dreamed", translation: "soñar" },
+                { infinitive: "drink", past: "drank", participle: "drunk", translation: "beber" },
+                { infinitive: "drive", past: "drove", participle: "driven", translation: "conducir" },
+                { infinitive: "eat", past: "ate", participle: "eaten", translation: "comer" },
+                { infinitive: "fall", past: "fell", participle: "fallen", translation: "caerse" },
+                { infinitive: "feed", past: "fed", participle: "fed", translation: "dar de comer, alimentar" },
+                { infinitive: "feel", past: "felt", participle: "felt", translation: "sentir" },
+                { infinitive: "fight", past: "fought", participle: "fought", translation: "luchar" },
+                { infinitive: "find", past: "found", participle: "found", translation: "encontrar" },
+                { infinitive: "fly", past: "flew", participle: "flown", translation: "volar" },
+                { infinitive: "forget", past: "forgot", participle: "forgotten", translation: "olvidar" },
+                { infinitive: "freeze", past: "froze", participle: "frozen", translation: "congelar, helar" },
+                { infinitive: "get", past: "got", participle: "got", translation: "conseguir, obtener" },
+                { infinitive: "give", past: "gave", participle: "given", translation: "dar" },
+                { infinitive: "go", past: "went", participle: "gone", translation: "ir" },
+                { infinitive: "grow", past: "grew", participle: "grown", translation: "crecer, cultivar" },
+                { infinitive: "hang", past: "hung", participle: "hung", translation: "colgar" },
+                { infinitive: "have", past: "had", participle: "had", translation: "tener, haber" },
+                { infinitive: "hear", past: "heard", participle: "heard", translation: "oír" },
+                { infinitive: "hide", past: "hid", participle: "hidden", translation: "esconder" },
+                { infinitive: "hit", past: "hit", participle: "hit", translation: "golpear, pegar" }
+            ];
+        
+                let selectedVerbs = [];
+                let score = 0;
+                let previousResults = JSON.parse(localStorage.getItem("previousResults")) || [];
+        
+                function startGame() {
+                    const startScreen = document.getElementById("start-screen");
+                    const gameScreen = document.getElementById("game-screen");
+        
+                    if (!startScreen || !gameScreen) {
+                        console.error("Error: One or more required elements are missing.");
+                        return;
+                    }
+        
+                    startScreen.classList.add("hidden");
+                    gameScreen.classList.remove("hidden");
+        
+                    selectedVerbs = shuffleArray([...verbs]).slice(0, 10);
+                    localStorage.setItem("selectedVerbs", JSON.stringify(selectedVerbs));
+                    displayVerbs();
+                }
+        
+                function displayVerbs() {
+                    const list = document.getElementById("verb-list");
+                    if (!list) {
+                        console.error("Error: 'verb-list' element is missing.");
+                        return;
+                    }
+        
+                    list.innerHTML = "";
+        
+                    selectedVerbs.forEach((verb, index) => {
+                        const item = document.createElement("div");
+                        item.className = "grid grid-cols-6 gap-4 items-center";
+        
+                        const voiceButton = document.createElement("button");
+                        voiceButton.innerHTML = "🔊";
+                        voiceButton.className = "bg-blue-500 text-white text-lg px-2 py-1 rounded-lg";
+                        voiceButton.onclick = () => speakVerb(verb.infinitive);
+        
+                        const infinitiveInput = createInput("Infinitive", index, "infinitive");
+                        const pastInput = createInput("Simple Past", index, "past");
+                        const participleInput = createInput("Past Participle", index, "participle");
+                        const translationInput = createInput("Translation", index, "translation");
+        
+                        item.append(voiceButton, infinitiveInput, pastInput, participleInput, translationInput);
+                        list.appendChild(item);
+                    });
+                }
+        
+                function createInput(placeholder, index, type) {
+                    const input = document.createElement("input");
+                    input.type = "text";
+                    input.placeholder = placeholder;
+                    input.className = "border rounded-lg px-2 py-1";
+                    input.dataset.index = index;
+                    input.dataset.type = type;
+                    return input;
+                }
+        
+                function speakVerb(verb) {
+                    const utterance = new SpeechSynthesisUtterance(verb);
+                    utterance.lang = "en-US";
+                    window.speechSynthesis.speak(utterance);
+                }
+        
+                function submitAnswers() {
+                    const inputs = document.querySelectorAll("#verb-list input");
+                    const answers = Array.from(inputs).reduce((acc, input) => {
+                        const index = input.dataset.index;
+                        const type = input.dataset.type;
+                        const value = input.value.trim();
+        
+                        if (!acc[index]) acc[index] = {};
+                        acc[index][type] = value;
+        
+                        return acc;
+                    }, []);
+        
+                    score = calculateScore(answers);
+                    localStorage.setItem("score", score.toFixed(2));
+                    showResults(answers);
+                }
+        
+                function calculateScore(answers) {
+                    return selectedVerbs.reduce((total, verb, index) => {
+                        const correct = {
+                            infinitive: verb.infinitive.toLowerCase() === (answers[index]?.infinitive || "").toLowerCase(),
+                            past: verb.past.toLowerCase().split("/").includes((answers[index]?.past || "").toLowerCase()),
+                            participle: verb.participle.toLowerCase().split("/").includes((answers[index]?.participle || "").toLowerCase()),
+                            translation: verb.translation.toLowerCase().split(/[,\/]/).some(opt => opt.trim() === (answers[index]?.translation || "").toLowerCase())
+                        };
+                        return total + Object.values(correct).filter(Boolean).length * 0.25;
+                    }, 0);
+                }
+        
+                function showResults(answers) {
+                    const resultsScreen = document.getElementById("results-screen");
+                    const list = document.getElementById("results-list");
+        
+                    document.getElementById("game-screen").classList.add("hidden");
+                    resultsScreen.classList.remove("hidden");
+        
+                    list.innerHTML = "";
+        
+                    selectedVerbs.forEach((verb, index) => {
+                        const userAnswer = answers[index] || {};
+                        const correct = {
+                            infinitive: verb.infinitive.toLowerCase() === (userAnswer.infinitive || "").toLowerCase(),
+                            past: verb.past.toLowerCase().split("/").includes((userAnswer.past || "").toLowerCase()),
+                            participle: verb.participle.toLowerCase().split("/").includes((userAnswer.participle || "").toLowerCase()),
+                            translation: verb.translation.toLowerCase().split(/[,\/]/).some(opt => opt.trim() === (userAnswer.translation || "").toLowerCase())
+                        };
+        
+                        const item = document.createElement("li");
+                        item.className = "mb-2";
+        
+                        item.innerHTML = `
+                            <strong>${verb.infinitive}</strong>: 
+                            Infinitive: <span class="${correct.infinitive ? 'text-green-500' : 'text-red-500'}">${userAnswer.infinitive || '?'}</span>, 
+                            Past: <span class="${correct.past ? 'text-green-500' : 'text-red-500'}">${userAnswer.past || '?'}</span>, 
+                            Participle: <span class="${correct.participle ? 'text-green-500' : 'text-red-500'}">${userAnswer.participle || '?'}</span>, 
+                            Translation: <span class="${correct.translation ? 'text-green-500' : 'text-red-500'}">${userAnswer.translation || '?'}</span>
+                        `;
+        
+                        list.appendChild(item);
+                    });
+        
+                    document.getElementById("score").textContent = `Score: ${score.toFixed(2)} / 10`;
+                }
+        
+                function shuffleArray(array) {
+                    return array.sort(() => Math.random() - 0.5);
+                }
+        
+                function goToStart() {
+                    document.querySelectorAll(".hidden").forEach(el => el.classList.add("hidden"));
+                    document.getElementById("start-screen").classList.remove("hidden");
+                }
+        
+                function retryGame() {
+                    localStorage.clear();
+                    goToStart();
+                }
+        
+            </script>
+        </body>
+        </html>
+        
