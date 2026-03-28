@@ -1,0 +1,2090 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Manual Montañero: El Juego</title>
+    <style>
+        /* IMPORTAMOS FUENTE 8-BIT (Si hay internet). Si no, usa monospace */
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+        :root {
+            --bg-color: #1e1e24;
+            --text-color: #f0f0f0;
+            --accent-color: #fde047;
+            /* Amarillo pastel retro */
+            --danger-color: #f87171;
+            --success-color: #4ade80;
+            --panel-bg: #2b2b36;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Press Start 2P', monospace;
+            text-transform: uppercase;
+            overflow-x: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+
+        /* CONTENEDOR PRINCIPAL QUE SIMULA PANTALLA DE MÓVIL/GAMEBOY */
+        #game-container {
+            width: 100%;
+            max-width: 600px;
+            background-color: var(--panel-bg);
+            min-height: 100vh;
+            position: relative;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+            border: 4px solid #555;
+        }
+
+        /* PANTALLAS (Views) */
+        .screen {
+            display: none;
+            padding: 20px;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        h1 {
+            font-size: 24px;
+            color: var(--accent-color);
+            text-align: center;
+            line-height: 1.8;
+            margin-bottom: 30px;
+            text-shadow: 1px 1px 0px rgba(0,0,0,0.3);
+            letter-spacing: 2px;
+        }
+
+        h2 {
+            font-size: 16px;
+            color: var(--text-color);
+            text-align: center;
+            line-height: 1.8;
+            margin-bottom: 20px;
+            text-shadow: 1px 1px 0px rgba(0,0,0,0.2);
+            letter-spacing: 1px;
+        }
+
+        p {
+            font-size: 11px;
+            line-height: 2.0;
+            text-align: center;
+            margin-bottom: 20px;
+            letter-spacing: 0.5px;
+            color: var(--text-color);
+        }
+
+        /* BOTONES ESTILO 8-BIT */
+        .btn {
+            background-color: transparent;
+            color: var(--accent-color);
+            border: 4px solid var(--accent-color);
+            padding: 15px 20px;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 12px;
+            letter-spacing: 1px;
+            line-height: 1.5;
+            cursor: pointer;
+            margin: 10px 0;
+            width: 100%;
+            text-align: center;
+            transition: all 0.1s;
+            box-shadow: 4px 4px 0px rgba(0,0,0,0.3);
+        }
+
+        .btn:active {
+            transform: translate(4px, 4px);
+            box-shadow: 0px 0px 0px #000;
+        }
+
+        .btn.disabled {
+            border-color: #555;
+            color: #555;
+            cursor: not-allowed;
+            box-shadow: 4px 4px 0px #222;
+        }
+
+        /* AVATARES */
+        .avatar-selection {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            margin-bottom: 30px;
+        }
+
+        .avatar-card {
+            border: 4px solid #fff;
+            padding: 20px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .avatar-card:hover,
+        .avatar-card.selected {
+            border-color: var(--accent-color);
+            background-color: rgba(253, 224, 71, 0.2);
+        }
+
+        .avatar-icon {
+            font-size: 40px;
+            margin-bottom: 10px;
+        }
+
+        /* MAPA DE NIVELES */
+        .level-btn {
+            background-color: #333;
+            border: 4px solid #555;
+            padding: 15px;
+            margin: 5px 0;
+            width: 100%;
+            text-align: left;
+            font-size: 10px;
+            color: #fff;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .level-btn.unlocked {
+            border-color: var(--success-color);
+            color: var(--success-color);
+        }
+
+        .level-btn.completed {
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+        }
+
+        /* ZONA DE MINIJUEGO */
+        #minigame-area {
+            width: 100%;
+            height: 300px;
+            background-color: #000;
+            border: 4px solid #fff;
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .item-drop {
+            position: absolute;
+            font-size: 24px;
+            user-select: none;
+            cursor: pointer;
+        }
+
+        #score-board {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: #fff;
+            font-size: 10px;
+            z-index: 10;
+        }
+
+        /* ZONA DE QUIZ */
+        .quiz-option {
+            background: #222;
+            border: 2px solid #fff;
+            color: #fff;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 9px;
+            cursor: pointer;
+            width: 100%;
+            text-align: left;
+            line-height: 1.5;
+        }
+
+        .quiz-option.correct {
+            background: var(--success-color);
+        }
+
+        .quiz-option.wrong {
+            background: var(--danger-color);
+        }
+
+        /* NUEVAS ANIMACIONES MINIJUEGOS */
+        @keyframes run {
+            0% { transform: translateY(0px) rotate(0deg); }
+            25% { transform: translateY(-3px) rotate(5deg); }
+            50% { transform: translateY(0px) rotate(0deg); }
+            75% { transform: translateY(-3px) rotate(-5deg); }
+            100% { transform: translateY(0px) rotate(0deg); }
+        }
+        .anim-run {
+            animation: run 0.4s infinite;
+        }
+
+        @keyframes shiver {
+            0% { transform: translate(0, 0); }
+            20% { transform: translate(-2px, 2px); }
+            40% { transform: translate(2px, -2px); }
+            60% { transform: translate(-2px, -2px); }
+            80% { transform: translate(2px, 2px); }
+            100% { transform: translate(0, 0); }
+        }
+        .anim-shiver {
+            animation: shiver 0.2s infinite;
+        }
+
+        @keyframes flash-green {
+            0% { background: #444; }
+            50% { background: var(--success-color); }
+            100% { background: #444; }
+        }
+        @keyframes flash-red {
+            0% { background: #444; }
+            50% { background: var(--danger-color); }
+            100% { background: #444; }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="game-container">
+
+        <!-- PANTALLA DE INICIO -->
+        <div id="screen-title" class="screen active">
+            <div style="font-size: 50px; margin-top: 50px; margin-bottom: 20px;">⛰️</div>
+            <h1>MANUAL MONTAÑERO</h1>
+            <h2>DE NOOB A HACKER</h2>
+            <p style="color: #888;">PRESS START TO BEGIN</p>
+            <button class="btn" onclick="startGame()">START</button>
+        </div>
+
+        <!-- PANTALLA SELECCIÓN AVATAR -->
+        <div id="screen-avatar" class="screen">
+            <h2>SELECT PLAYER</h2>
+            <p>Elige tu clase inicial</p>
+            <div class="avatar-selection">
+                <div class="avatar-card" id="avatar-boy" onclick="selectAvatar('boy')">
+                    <div class="avatar-icon">👦🏻</div>
+                    <div style="font-size: 10px;">CHICO</div>
+                </div>
+                <div class="avatar-card" id="avatar-girl" onclick="selectAvatar('girl')">
+                    <div class="avatar-icon">👧🏽</div>
+                    <div style="font-size: 10px;">CHICA</div>
+                </div>
+            </div>
+            <button class="btn" id="btn-confirm-avatar" style="display:none;" onclick="goToMap()">CONFIRMAR</button>
+        </div>
+
+        <!-- MAPA DE NIVELES (HUD) -->
+        <div id="screen-map" class="screen">
+            <h2>WORLD MAP</h2>
+            <div style="font-size: 30px; margin-bottom: 20px;" id="current-avatar-display"></div>
+            <div id="level-list" style="width: 100%;">
+                <!-- Generado por JS -->
+            </div>
+            <button class="btn" style="margin-top: 30px; border-color: var(--danger-color); color: var(--danger-color);" onclick="resetGame()">REINICIAR JUEGO</button>
+        </div>
+
+        <!-- PANTALLA LORE / INTRO NIVEL -->
+        <div id="screen-lore" class="screen">
+            <h2 id="lore-title">NIVEL X</h2>
+            <p id="lore-text" style="text-align: justify; font-size: 10px;"></p>
+            <button class="btn" onclick="startMiniGame()">JUGAR RETO</button>
+            <button class="btn" onclick="goToMap()">VOLVER AL MAPA</button>
+        </div>
+
+        <!-- PANTALLA MINIJUEGO -->
+        <div id="screen-minigame" class="screen">
+            <h2 id="minigame-title">RETO</h2>
+            <p id="minigame-desc">Descripción del reto</p>
+            <div id="minigame-area">
+                <div id="score-board">SCORE: <span id="game-score">0</span>/5</div>
+            </div>
+            <button class="btn" id="btn-to-quiz" style="display:none;" onclick="startQuiz()">IR AL EXAMEN</button>
+        </div>
+
+        <!-- PANTALLA QUIZ -->
+        <div id="screen-quiz" class="screen">
+            <h2>BOSS BATTLE: EXAMEN</h2>
+            <p id="quiz-question" style="font-size: 12px; margin-bottom: 30px;"></p>
+            <div id="quiz-options" style="width: 100%;"></div>
+            <button class="btn" id="btn-next-quiz" style="display:none; margin-top: 20px;"
+                onclick="nextQuestion()">SIGUIENTE</button>
+        </div>
+
+        <!-- PANTALLA WIN FINAL -->
+        <div id="screen-win" class="screen">
+            <h1 style="color:var(--success-color);">¡ENHORABUENA!</h1>
+            <div style="font-size: 60px; margin: 20px 0;">🏆⛰️</div>
+            <h2>HAS COMPLETADO EL MANUAL</h2>
+            <p style="text-align: justify; font-size: 10px;">
+                Gracias por confiar en el libro "Manual Montañero de Noob a Hacker" y completar este juego. Ahora estás un paso más cerca de dejar de ser un NPC y convertirte en el Player One de tu propia aventura en la montaña. ¡Aplica lo aprendido ahí fuera!
+            </p>
+            <button class="btn" style="border-color: var(--success-color); color: var(--success-color);" onclick="goToMap()">VOLVER AL MAPA</button>
+            <button class="btn" style="border-color: var(--danger-color); color: var(--danger-color); margin-top: 30px;" onclick="resetGame()">BORRAR PROGRESO</button>
+        </div>
+
+    </div>
+
+    <!-- SCRIPT DEL MOTOR DEL JUEGO -->
+    <script>
+        // --- ESTADO DEL JUEGO ---
+        let gameState = {
+            avatar: null,
+            unlockedLevel: 0, // 0 = Welcome, 1 = Nivel 1...
+        };
+
+        let currentLevelPlaying = 0;
+        let quizState = { questions: [], currentQ: 0, score: 0 };
+        let gameLoop; // Para el minijuego
+
+        // Helper: devuelve emoji de persona según avatar y acción
+        function avatarEmoji(action) {
+            const isBoy = gameState.avatar === '👦🏻';
+            switch(action) {
+                case 'stand': return isBoy ? '🧍‍♂️' : '🧍‍♀️';
+                case 'walk': return isBoy ? '🚶‍♂️' : '🚶‍♀️';
+                case 'run': return isBoy ? '🏃‍♂️' : '🏃‍♀️';
+                case 'kneel': return isBoy ? '🧎‍♂️' : '🧎‍♀️';
+                case 'ypose': return isBoy ? '🙆‍♂️' : '🙆‍♀️';
+                case 'face': return gameState.avatar;
+                default: return gameState.avatar;
+            }
+        }
+
+        // DATOS DE LOS NIVELES (Extraídos del libro)
+        const LEVELS = [
+            {
+                id: 0,
+                title: "WELCOME TO THE SERVER",
+                lore: "La montaña no es un fondo de pantalla para Instagram. Es el videojuego de mundo abierto más complejo y brutal. Aquí no hay botón de respawn. Hemos perdido la capacidad de sufrir y buscar nuestro camino. Tu rol actual es NPC (Non-Playable Character). ¿Quieres ser Player One?",
+                hasMinigame: false, // Solo lectura
+                quiz: [
+                    { q: "¿Qué significa que la montaña no tiene Respawn?", options: ["Que no puedes dormir", "Que si mueres o fallas, el daño es real", "Que no hay cobertura"], correct: 1 },
+                    { q: "¿Qué es un montañero NPC?", options: ["Alguien que sigue a otros ciegamente", "Un profesional", "El que lleva el mapa"], correct: 0 }
+                ]
+            },
+            {
+                id: 1,
+                title: "NIVEL 1: META-JUEGO",
+                lore: "Inspecciona tus Stats. El error es preguntar '¿Es difícil?'. Usa el sistema MIDE para leer el entorno. Además, aplica el parche LNT 2.0 (Leave No Trace): la basura orgánica no desaparece mágicamente, y el Geotagging arruina los Easter Eggs de la naturaleza.",
+                hasMinigame: true,
+                quiz: [
+                    { q: "¿Qué evalúa el sistema MIDE?", options: ["La velocidad del viento", "Severidad, Orientación, Desplazamiento y Esfuerzo", "El precio de la ruta"], correct: 1 },
+                    { q: "La trampa de la distancia (Noob Trap) significa...", options: ["Que 5km en montaña cuestan lo mismo que en ciudad", "Que el tiempo se mide en horas y desnivel, no solo km", "Que hay que correr"], correct: 1 }
+                ]
+            },
+            {
+                id: 2,
+                title: "NIVEL 2: TU SKIN Y BACKPACK",
+                lore: "El algodón mata (Cotton Kills). Pierde un 90% de su capacidad térmica mojado. Usa el Sistema de 3 Capas: 1. Térmica (merino o sintético), 2. Forro Polar (calor), 3. Membrana (GoreTex para viento/lluvia). Y cuidado con el Gorpcore.",
+                hasMinigame: true,
+                quiz: [
+                    { q: "¿Por qué el algodón es peligroso en la montaña?", options: ["Se rompe fácil", "Seca muy lento y roba tu calor al mojarse", "Pesa demasiado"], correct: 1 },
+                    { q: "¿Para qué sirve exactamente la Tercera Capa (GoreTex)?", options: ["Para dar mucho calor", "Para proteger del viento y la lluvia exterior", "Para absorber el sudor"], correct: 1 }
+                ]
+            },
+            {
+                id: 3,
+                title: "NIVEL 3: EL MOTOR FÍSICO",
+                lore: "Tus barras de HP (Salud) y MP (Energía). Cuidado con el Bonking (la pájara) por falta de glucógeno y la hiponatremia (beber mucha agua sin sales). Además, deberás aplicar el Protocolo Cat-Hole si tienes una emergencia biológica (hacer caca).",
+                hasMinigame: true,
+                quiz: [
+                    { q: "¿Qué es la Hiponatremia?", options: ["Falta de azúcar", "Intoxicación por beber mucha agua sin reponer sales", "Un golpe de calor"], correct: 1 },
+                    { q: "¿A qué profundidad se debe hacer un Cat-Hole (agujero para heces)?", options: ["5 cm", "15 a 20 cm, a más de 60m del agua", "Medio metro"], correct: 1 }
+                ]
+            },
+            {
+                id: 4,
+                title: "NIVEL 4: NAVEGACIÓN",
+                lore: "Poner el móvil en Modo Avión es un lifehack básico. GPS es genial pero puede fallar; el mapa de papel tiene 'batería infinita'. Si te pierdes, activa S.T.O.P.: Stop, Think, Observe, Plan.",
+                hasMinigame: true,
+                quiz: [
+                    { q: "¿Qué significa el protocolo S.T.O.P.?", options: ["Stop, Think, Observe, Plan", "Sit, Talk, Orient, Prepare", "Sleep, Try, Out, Play"], correct: 0 },
+                    { q: "¿Por qué es crucial el Modo Avión?", options: ["Para no recibir spam", "Evita que el móvil gaste batería buscando red constantemente", "Mejora el GPS"], correct: 1 }
+                ]
+            },
+            {
+                id: 5,
+                title: "NIVEL 5: LECTURA DEL CIELO",
+                lore: "Cuidado con el gradiente térmico: hace más frío arriba y el viento (Windchill) empeora todo. Detecta Cumulonimbus (nubes de tormenta gigantes) y Lenticulares (viento fuerte). Si te pilla tormenta eléctrica, huye de picos y aíslate del suelo.",
+                hasMinigame: true,
+                quiz: [
+                    { q: "¿Cuál es la posición segura en tormenta eléctrica abierta?", options: ["Tumbarse extendido", "En cuclillas, pies juntos, aislado del suelo (sobre mochila)", "Subir a un árbol"], correct: 1 },
+                    { q: "¿Qué anuncian las nubes Cumulonimbus?", options: ["Tormenta, rayos y posible granizo", "Cielo despejado", "Viento seco"], correct: 0 }
+                ]
+            },
+            {
+                id: 6,
+                title: "NIVEL 6: PARKOUR ALPINO",
+                lore: "El ritmo no debe dejarte sin aliento (Ritmo diésel). Usa bastones bajando para salvar tus rodillas, pero QUÍTATE las dragoneras (correas) para no luxarte si caes. Si tiras una piedra sin querer, grita '¡PIEDRA!' muy fuerte.",
+                hasMinigame: true,
+                quiz: [
+                    { q: "¿Por qué NO usar dragoneras bajando terrenos difíciles?", options: ["Dan calor", "Si caes puedes luxarte el hombro o no frenar con las manos", "Rompen el bastón"], correct: 1 },
+                    { q: "¿Qué debes gritar si tiras una roca cayendo ladera abajo?", options: ["¡Cuidado abajo!", "¡PIEDRA!", "¡Roca suelta!"], correct: 1 }
+                ]
+            },
+            {
+                id: 7,
+                title: "NIVEL 7: PLANIFICACIÓN",
+                lore: "No sufras la Fiebre de la Cumbre. Da la vuelta si hace falta, fija una Safe Word (hora límite para darse la vuelta sin discusión). El ritmo del grupo lo marca siempre el Eslabón más débil.",
+                hasMinigame: true,
+                quiz: [
+                    { q: "¿Quién debe marcar el ritmo en un grupo?", options: ["El guía o líder en cabeza", "El eslabón más débil / la persona más lenta", "Cualquiera que esté motivado"], correct: 1 },
+                    { q: "Regla Naismith: ¿Cuánto tiempo base requiere una ruta de 8km con 800m de subida?", options: ["2 horas", "4 horas (2h distancia + 2h desnivel)", "6 horas"], correct: 1 }
+                ]
+            },
+            {
+                id: 8,
+                title: "NIVEL 8: ZONA DE PELIGRO",
+                lore: "Primeros Auxilios. Ante el primer 'Hot Spot' (roce), pon Tape. Si alguien sufre un esguince fuerte de tobillo, NO LE QUITES LA BOTA, funciona como férula. Y vigila los UMBLES (síntomas de hipotermia grave).",
+                hasMinigame: true,
+                quiz: [
+                    { q: "¿Qué NO debes hacer tras un esguince fuerte en ruta?", options: ["Parar a descansar", "Quitarle la bota para ver el golpe", "Poner un vendaje compresivo"], correct: 1 },
+                    { q: "¿Qué significan los UMBLES?", options: ["Signos de hipotermia (Fumbles, Mumbles, Grumbles, Stumbles)", "Un tipo de nudo", "Un kit médico"], correct: 0 }
+                ]
+            },
+            {
+                id: 9,
+                title: "NIVEL 9: END GAME (NIEVE)",
+                lore: "En la nieve el juego cambia. Piolet, crampones y cuidado con el Efecto Trineo. Todo se vuelve traicionero. El Mal de Altura Acumulado (MAM) es portal al caos cerebral, y contra avalanchas necesitas el tridente vital: ARVA, Pala y Sonda.",
+                hasMinigame: true,
+                quiz: [
+                    { q: "¿Cuál es la única cura real para el Mal de Altura (MAM) fuerte?", options: ["Beber café", "Agazaparse o sentarse", "Perder altitud inmediatamente (descender)"], correct: 2 },
+                    { q: "¿El ARVA (DVA) te salva automáticamente?", options: ["Sí, manda helicópteros", "No, solo te hace localizable, necesitas que tus amigos rápido usen pala y sonda", "Te da calor"], correct: 1 }
+                ]
+            },
+            {
+                id: 10,
+                title: "NIVEL 10: EMERGENCIAS",
+                lore: "Protocolo P.A.S.: Proteger (no ser tú la segunda víctima), Avisar (al 112, funciona sin tarjeta SIM si hay OTRA red), Socorrer. Hazte grande para el rescate y mantén limpio el LZ (Landing Zone) del helicóptero.",
+                hasMinigame: true,
+                quiz: [
+                    { q: "¿Qué significan las siglas P.A.S.?", options: ["Parar, Andar, Seguir", "Proteger, Avisar, Socorrer", "Preparar, Avisar, Salvar"], correct: 1 },
+                    { q: "¿Cómo hacer la señal de SOS corporal al helicóptero si SÍ necesitas ayuda?", options: ["Levantar ambos brazos formando una Y (Yes)", "Levantar un brazo y bajar otro formando N", "Saltar repetidamente"], correct: 0 }
+                ]
+            }
+        ];
+
+        // --- MOTOR DE AUDIO 8-BIT SINTÉTICO MULTI-CANAL ---
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const audioCtx = new AudioContext();
+        
+        const unlockAudio = () => { if (audioCtx.state === 'suspended') audioCtx.resume(); };
+        document.body.addEventListener('click', unlockAudio, { once: true });
+        document.body.addEventListener('touchstart', unlockAudio, { once: true });
+
+        // Tabla de notas extendida (C2 a C7)
+        const NOTES = {};
+        (function buildNotes() {
+            const names = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+            for (let oct = 2; oct <= 7; oct++) {
+                for (let i = 0; i < 12; i++) {
+                    const midi = (oct + 1) * 12 + i;
+                    NOTES[names[i] + oct] = 440 * Math.pow(2, (midi - 69) / 12);
+                }
+            }
+            NOTES['REST'] = 0;
+        })();
+
+        let bgmTimeout = null;
+        let isBgmPlaying = false;
+        let bgmChannels = { lead: [], bass: [], arp: [], drum: [] };
+        let bgmSteps = { lead: 0, bass: 0, arp: 0, drum: 0 };
+        let currentTempo = 150;
+        let nextNoteTime = 0;
+        let swingAmount = 0;
+
+        // Nodo master de volumen
+        const masterGain = audioCtx.createGain();
+        masterGain.gain.value = 0.6;
+        masterGain.connect(audioCtx.destination);
+
+        // --- Play a single chiptune note on a channel ---
+        function chipNote(freq, type, startTime, dur, vol, detune) {
+            if (freq <= 0) return;
+            const osc = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, startTime);
+            if (detune) osc.detune.setValueAtTime(detune, startTime);
+            const attack = 0.015;
+            const decay = Math.min(dur * 0.3, 0.08);
+            g.gain.setValueAtTime(0, startTime);
+            g.gain.linearRampToValueAtTime(vol, startTime + attack);
+            g.gain.setValueAtTime(vol * 0.8, startTime + attack + decay);
+            g.gain.linearRampToValueAtTime(0.0001, startTime + dur - 0.01);
+            osc.connect(g);
+            g.connect(masterGain);
+            osc.start(startTime);
+            osc.stop(startTime + dur);
+        }
+
+        // --- Noise drum hit (kick/snare/hihat) ---
+        function drumHit(type, startTime) {
+            const buf = audioCtx.createBufferSource();
+            const len = type === 'kick' ? 0.15 : (type === 'snare' ? 0.1 : 0.05);
+            const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate * len, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1);
+            buf.buffer = buffer;
+            const g = audioCtx.createGain();
+            const vol = type === 'kick' ? 0.25 : (type === 'snare' ? 0.15 : 0.08);
+            g.gain.setValueAtTime(vol, startTime);
+            g.gain.exponentialRampToValueAtTime(0.0001, startTime + len);
+            if (type === 'kick') {
+                const filter = audioCtx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(200, startTime);
+                buf.connect(filter);
+                filter.connect(g);
+            } else if (type === 'snare') {
+                const filter = audioCtx.createBiquadFilter();
+                filter.type = 'bandpass';
+                filter.frequency.setValueAtTime(3000, startTime);
+                filter.Q.setValueAtTime(1, startTime);
+                buf.connect(filter);
+                filter.connect(g);
+            } else {
+                const filter = audioCtx.createBiquadFilter();
+                filter.type = 'highpass';
+                filter.frequency.setValueAtTime(8000, startTime);
+                buf.connect(filter);
+                filter.connect(g);
+            }
+            g.connect(masterGain);
+            buf.start(startTime);
+        }
+
+        // --- SFX ---
+        function playBeep(freq, type, duration) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            chipNote(freq, type, audioCtx.currentTime, duration, 0.12, 0);
+        }
+        function soundClick() { playBeep(880, 'square', 0.06); setTimeout(() => playBeep(1100, 'square', 0.04), 40); }
+        function soundHover() { playBeep(1400, 'square', 0.03); }
+        function soundCorrect() { playBeep(660, 'square', 0.08); setTimeout(() => playBeep(880, 'square', 0.08), 80); setTimeout(() => playBeep(1320, 'square', 0.15), 160); }
+        function soundWrong() { playBeep(220, 'sawtooth', 0.15); setTimeout(() => playBeep(180, 'sawtooth', 0.25), 120); }
+        function soundLevelUp() {
+            const t = audioCtx.currentTime;
+            chipNote(NOTES['C5'], 'square', t, 0.1, 0.12, 0);
+            chipNote(NOTES['E5'], 'square', t + 0.1, 0.1, 0.12, 0);
+            chipNote(NOTES['G5'], 'square', t + 0.2, 0.1, 0.12, 0);
+            chipNote(NOTES['C6'], 'square', t + 0.3, 0.3, 0.14, 0);
+            chipNote(NOTES['E6'], 'square', t + 0.35, 0.25, 0.10, 0);
+        }
+
+        function stopBGM() {
+            isBgmPlaying = false;
+            if (bgmTimeout) { clearTimeout(bgmTimeout); bgmTimeout = null; }
+        }
+
+        // ============================================================
+        //  MELODÍAS CHIPTUNE - Multi-canal pegadizas y dinámicas
+        //  Cada entrada: {n: 'Nota', t: duración en beats}
+        //  Canal lead: square wave (melodía principal)
+        //  Canal bass: triangle wave (bajo)
+        //  Canal arp: square wave detuned (arpegio/armonía)
+        //  Canal drum: 'K'=kick, 'S'=snare, 'H'=hihat, 'R'=rest
+        // ============================================================
+
+        const SONG_DATA = {
+            // ---- MENÚ PRINCIPAL: Tema aventurero pegadizo (estilo Mega Man / Castlevania) ----
+            menu: {
+                tempo: 160,
+                swing: 0.02,
+                lead: [
+                    // Frase A (ascendente y heroica)
+                    {n:'E5',t:0.5}, {n:'D5',t:0.5}, {n:'E5',t:0.5}, {n:'G5',t:0.5},
+                    {n:'A5',t:1}, {n:'G5',t:0.5}, {n:'E5',t:0.5},
+                    {n:'D5',t:0.5}, {n:'E5',t:0.5}, {n:'D5',t:0.5}, {n:'C5',t:0.5},
+                    {n:'D5',t:1.5}, {n:'REST',t:0.5},
+                    // Frase B (respuesta melódica)
+                    {n:'E5',t:0.5}, {n:'D5',t:0.5}, {n:'E5',t:0.5}, {n:'G5',t:0.5},
+                    {n:'A5',t:0.5}, {n:'B5',t:0.5}, {n:'A5',t:0.5}, {n:'G5',t:0.5},
+                    {n:'E5',t:0.5}, {n:'G5',t:0.5}, {n:'F#5',t:0.5}, {n:'E5',t:0.5},
+                    {n:'D5',t:1.5}, {n:'REST',t:0.5},
+                    // Frase C (puente, más intensa)
+                    {n:'A5',t:0.5}, {n:'G5',t:0.5}, {n:'A5',t:0.5}, {n:'B5',t:0.5},
+                    {n:'C6',t:1}, {n:'B5',t:0.5}, {n:'A5',t:0.5},
+                    {n:'G5',t:0.5}, {n:'A5',t:0.5}, {n:'G5',t:0.5}, {n:'F#5',t:0.5},
+                    {n:'E5',t:1}, {n:'REST',t:0.5}, {n:'D5',t:0.5},
+                    // Frase D (resolución épica)
+                    {n:'E5',t:0.5}, {n:'G5',t:0.5}, {n:'A5',t:0.5}, {n:'B5',t:0.5},
+                    {n:'C6',t:0.5}, {n:'B5',t:0.25}, {n:'A5',t:0.25}, {n:'G5',t:0.5}, {n:'A5',t:0.5},
+                    {n:'E5',t:1}, {n:'D5',t:0.5}, {n:'E5',t:0.5},
+                    {n:'C5',t:1.5}, {n:'REST',t:0.5}
+                ],
+                bass: [
+                    // Patrón bajo pulsante tipo Mega Man
+                    {n:'C3',t:0.5}, {n:'C4',t:0.5}, {n:'C3',t:0.5}, {n:'C4',t:0.5},
+                    {n:'A2',t:0.5}, {n:'A3',t:0.5}, {n:'A2',t:0.5}, {n:'A3',t:0.5},
+                    {n:'G2',t:0.5}, {n:'G3',t:0.5}, {n:'G2',t:0.5}, {n:'G3',t:0.5},
+                    {n:'G2',t:0.5}, {n:'G3',t:0.5}, {n:'G2',t:0.5}, {n:'G3',t:0.5},
+                    // Repetir con variación
+                    {n:'C3',t:0.5}, {n:'C4',t:0.5}, {n:'C3',t:0.5}, {n:'C4',t:0.5},
+                    {n:'A2',t:0.5}, {n:'A3',t:0.5}, {n:'A2',t:0.5}, {n:'A3',t:0.5},
+                    {n:'E3',t:0.5}, {n:'E4',t:0.5}, {n:'E3',t:0.5}, {n:'E4',t:0.5},
+                    {n:'D3',t:0.5}, {n:'D4',t:0.5}, {n:'D3',t:0.5}, {n:'D4',t:0.5},
+                    // Puente
+                    {n:'F3',t:0.5}, {n:'F4',t:0.5}, {n:'F3',t:0.5}, {n:'F4',t:0.5},
+                    {n:'C3',t:0.5}, {n:'C4',t:0.5}, {n:'C3',t:0.5}, {n:'C4',t:0.5},
+                    {n:'G2',t:0.5}, {n:'G3',t:0.5}, {n:'G2',t:0.5}, {n:'G3',t:0.5},
+                    {n:'E3',t:0.5}, {n:'E4',t:0.5}, {n:'D3',t:0.5}, {n:'D4',t:0.5},
+                    // Resolución
+                    {n:'C3',t:0.5}, {n:'E3',t:0.5}, {n:'G3',t:0.5}, {n:'C4',t:0.5},
+                    {n:'A2',t:0.5}, {n:'C3',t:0.5}, {n:'E3',t:0.5}, {n:'A3',t:0.5},
+                    {n:'G2',t:0.5}, {n:'B2',t:0.5}, {n:'D3',t:0.5}, {n:'G3',t:0.5},
+                    {n:'C3',t:1},  {n:'REST',t:0.5}, {n:'G2',t:0.5}
+                ],
+                arp: [
+                    // Arpegio rápido que da brillo
+                    {n:'C5',t:0.25}, {n:'E5',t:0.25}, {n:'G4',t:0.25}, {n:'E5',t:0.25},
+                    {n:'C5',t:0.25}, {n:'E5',t:0.25}, {n:'G4',t:0.25}, {n:'E5',t:0.25},
+                    {n:'A4',t:0.25}, {n:'C5',t:0.25}, {n:'E5',t:0.25}, {n:'C5',t:0.25},
+                    {n:'A4',t:0.25}, {n:'C5',t:0.25}, {n:'E5',t:0.25}, {n:'C5',t:0.25},
+                    {n:'G4',t:0.25}, {n:'B4',t:0.25}, {n:'D5',t:0.25}, {n:'B4',t:0.25},
+                    {n:'G4',t:0.25}, {n:'B4',t:0.25}, {n:'D5',t:0.25}, {n:'B4',t:0.25},
+                    {n:'G4',t:0.25}, {n:'B4',t:0.25}, {n:'D5',t:0.25}, {n:'G5',t:0.25},
+                    {n:'D5',t:0.25}, {n:'B4',t:0.25}, {n:'G4',t:0.25}, {n:'D5',t:0.25}
+                ],
+                drum: [
+                    // Beat enérgico con variación
+                    {d:'K',t:0.5}, {d:'H',t:0.5}, {d:'S',t:0.5}, {d:'H',t:0.5},
+                    {d:'K',t:0.5}, {d:'H',t:0.25}, {d:'H',t:0.25}, {d:'S',t:0.5}, {d:'H',t:0.5},
+                    {d:'K',t:0.5}, {d:'H',t:0.5}, {d:'S',t:0.5}, {d:'H',t:0.25}, {d:'H',t:0.25},
+                    {d:'K',t:0.25}, {d:'K',t:0.25}, {d:'H',t:0.5}, {d:'S',t:0.5}, {d:'K',t:0.5}
+                ]
+            },
+
+            // ---- QUIZ / BOSS BATTLE: Tensión y urgencia ----
+            quiz: {
+                tempo: 175,
+                swing: 0,
+                lead: [
+                    {n:'E4',t:0.25}, {n:'E4',t:0.25}, {n:'REST',t:0.25}, {n:'E4',t:0.25},
+                    {n:'REST',t:0.25}, {n:'C4',t:0.25}, {n:'E4',t:0.5},
+                    {n:'G4',t:0.5}, {n:'REST',t:0.5}, {n:'G3',t:0.5}, {n:'REST',t:0.5},
+                    // Tensión
+                    {n:'A4',t:0.5}, {n:'B4',t:0.5}, {n:'A#4',t:0.5}, {n:'A4',t:0.5},
+                    {n:'G4',t:0.5}, {n:'E5',t:0.5}, {n:'G5',t:0.5}, {n:'A5',t:0.5},
+                    {n:'F5',t:0.5}, {n:'G5',t:0.25}, {n:'REST',t:0.25}, {n:'E5',t:0.5},
+                    {n:'C5',t:0.5}, {n:'D5',t:0.5}, {n:'B4',t:0.5}, {n:'REST',t:0.5},
+                    // Frase repetición urgente
+                    {n:'D5',t:0.25}, {n:'D5',t:0.25}, {n:'D5',t:0.5},
+                    {n:'D5',t:0.25}, {n:'E5',t:0.25}, {n:'F5',t:0.5},
+                    {n:'E5',t:0.25}, {n:'D5',t:0.25}, {n:'C5',t:0.5}, {n:'A4',t:0.5},
+                    {n:'C5',t:0.5}, {n:'D5',t:0.5}, {n:'REST',t:0.5}, {n:'REST',t:0.5}
+                ],
+                bass: [
+                    {n:'C3',t:0.5}, {n:'G3',t:0.5}, {n:'C3',t:0.5}, {n:'G3',t:0.5},
+                    {n:'B2',t:0.5}, {n:'G3',t:0.5}, {n:'B2',t:0.5}, {n:'G3',t:0.5},
+                    {n:'A2',t:0.5}, {n:'E3',t:0.5}, {n:'A2',t:0.5}, {n:'E3',t:0.5},
+                    {n:'A#2',t:0.5}, {n:'F3',t:0.5}, {n:'B2',t:0.5}, {n:'G3',t:0.5},
+                    {n:'C3',t:0.5}, {n:'E3',t:0.5}, {n:'F3',t:0.5}, {n:'A3',t:0.5},
+                    {n:'G2',t:0.5}, {n:'B2',t:0.5}, {n:'D3',t:0.5}, {n:'G3',t:0.5}
+                ],
+                arp: [
+                    {n:'C4',t:0.25}, {n:'D#4',t:0.25}, {n:'G4',t:0.25}, {n:'D#4',t:0.25},
+                    {n:'B3',t:0.25}, {n:'D4',t:0.25}, {n:'G4',t:0.25}, {n:'D4',t:0.25},
+                    {n:'A3',t:0.25}, {n:'C4',t:0.25}, {n:'E4',t:0.25}, {n:'C4',t:0.25},
+                    {n:'A#3',t:0.25}, {n:'D4',t:0.25}, {n:'F4',t:0.25}, {n:'D4',t:0.25}
+                ],
+                drum: [
+                    {d:'K',t:0.5}, {d:'H',t:0.25}, {d:'H',t:0.25}, {d:'S',t:0.5}, {d:'H',t:0.5},
+                    {d:'K',t:0.5}, {d:'H',t:0.5}, {d:'S',t:0.5}, {d:'H',t:0.25}, {d:'K',t:0.25},
+                    {d:'K',t:0.5}, {d:'H',t:0.25}, {d:'H',t:0.25}, {d:'S',t:0.5}, {d:'H',t:0.5},
+                    {d:'K',t:0.25}, {d:'K',t:0.25}, {d:'S',t:0.25}, {d:'H',t:0.25}, {d:'S',t:0.5}, {d:'K',t:0.5}
+                ]
+            },
+
+            // ---- VICTORIA: Fanfarria gloriosa ----
+            win: {
+                tempo: 140,
+                swing: 0,
+                lead: [
+                    {n:'G4',t:0.25}, {n:'G4',t:0.25}, {n:'G4',t:0.5}, {n:'E5',t:1},
+                    {n:'D5',t:0.25}, {n:'E5',t:0.25}, {n:'D5',t:0.25}, {n:'C5',t:0.25}, {n:'D5',t:1},
+                    {n:'E5',t:0.5}, {n:'G5',t:0.5}, {n:'A5',t:0.5}, {n:'G5',t:0.5},
+                    {n:'E5',t:0.5}, {n:'C5',t:0.5}, {n:'E5',t:1},
+                    {n:'C5',t:0.5}, {n:'D5',t:0.5}, {n:'E5',t:0.5}, {n:'G5',t:0.5}, {n:'C6',t:2}
+                ],
+                bass: [
+                    {n:'C3',t:1}, {n:'E3',t:1}, {n:'G3',t:1}, {n:'C4',t:1},
+                    {n:'F3',t:1}, {n:'A3',t:1}, {n:'G3',t:1}, {n:'B3',t:1},
+                    {n:'C3',t:1}, {n:'G3',t:1}, {n:'C4',t:2}
+                ],
+                arp: [],
+                drum: [
+                    {d:'K',t:0.25}, {d:'K',t:0.25}, {d:'K',t:0.5}, {d:'S',t:1},
+                    {d:'K',t:0.5}, {d:'H',t:0.5}, {d:'S',t:0.5}, {d:'H',t:0.5},
+                    {d:'K',t:0.5}, {d:'S',t:0.5}, {d:'K',t:0.5}, {d:'S',t:0.5},
+                    {d:'K',t:0.25}, {d:'S',t:0.25}, {d:'K',t:0.25}, {d:'S',t:0.25}, {d:'K',t:1}
+                ]
+            },
+
+            // ---- DERROTA: Dramática ----
+            lose: {
+                tempo: 100,
+                swing: 0,
+                lead: [
+                    {n:'E4',t:1}, {n:'D#4',t:1}, {n:'D4',t:1}, {n:'C#4',t:1},
+                    {n:'C4',t:1.5}, {n:'REST',t:0.5},
+                    {n:'G3',t:0.5}, {n:'G#3',t:0.5}, {n:'G3',t:0.5}, {n:'F3',t:0.5},
+                    {n:'C3',t:2}
+                ],
+                bass: [
+                    {n:'C3',t:1}, {n:'B2',t:1}, {n:'A#2',t:1}, {n:'A2',t:1},
+                    {n:'G#2',t:2}, {n:'G2',t:2},
+                    {n:'F2',t:2}, {n:'C2',t:2}
+                ],
+                arp: [],
+                drum: [
+                    {d:'K',t:2}, {d:'R',t:2}, {d:'K',t:2}, {d:'R',t:2},
+                    {d:'S',t:1}, {d:'R',t:1}, {d:'K',t:2}
+                ]
+            }
+        };
+
+        // ---- Generar melodías únicas por nivel (cada una tiene carácter propio) ----
+        (function generateLevelSongs() {
+            // Escalas y patrones únicos por nivel
+            const levelDefs = [
+                { // Nivel 1 - Meta-juego: Optimista, exploratoria
+                    key: ['C4','D4','E4','G4','A4','C5','D5','E5'], tempo: 155,
+                    bassRoot: ['C3','A2','F3','G3'], pattern: 'bounce'
+                },
+                { // Nivel 2 - Skin/Backpack: Funky rítmica
+                    key: ['D4','F4','G4','A4','C5','D5','F5','G5'], tempo: 165,
+                    bassRoot: ['D3','B2','G3','A3'], pattern: 'funky'
+                },
+                { // Nivel 3 - Motor Físico: Energética y rápida
+                    key: ['E4','F#4','G#4','B4','C#5','E5','F#5','G#5'], tempo: 175,
+                    bassRoot: ['E3','C#3','A3','B3'], pattern: 'driving'
+                },
+                { // Nivel 4 - Navegación: Misteriosa, modo menor
+                    key: ['A4','B4','C5','D5','E5','F5','G5','A5'], tempo: 150,
+                    bassRoot: ['A2','F3','D3','E3'], pattern: 'mysterious'
+                },
+                { // Nivel 5 - Lectura Cielo: Etérea y dramática
+                    key: ['F4','G4','A4','C5','D5','F5','G5','A5'], tempo: 145,
+                    bassRoot: ['F3','D3','A#2','C3'], pattern: 'epic'
+                },
+                { // Nivel 6 - Parkour: Muy rápida y ágil
+                    key: ['G4','A4','B4','D5','E5','G5','A5','B5'], tempo: 185,
+                    bassRoot: ['G3','E3','C3','D3'], pattern: 'chase'
+                },
+                { // Nivel 7 - Planificación: Estratégica, calculada
+                    key: ['D4','E4','F#4','A4','B4','D5','E5','F#5'], tempo: 140,
+                    bassRoot: ['D3','B2','G3','A3'], pattern: 'strategic'
+                },
+                { // Nivel 8 - Zona Peligro: Tensa y oscura
+                    key: ['C4','D#4','F4','F#4','G4','A#4','C5','D#5'], tempo: 170,
+                    bassRoot: ['C3','G#2','F3','G3'], pattern: 'danger'
+                },
+                { // Nivel 9 - Nieve: Gélida y épica
+                    key: ['E4','F#4','G4','A4','B4','D5','E5','F#5'], tempo: 155,
+                    bassRoot: ['E3','C3','A2','B2'], pattern: 'frozen'
+                },
+                { // Nivel 10 - Emergencias: Urgente y heroica
+                    key: ['C4','D4','E4','F4','G4','A4','B4','C5','D5','E5','G5','C6'], tempo: 190,
+                    bassRoot: ['C3','F3','G3','E3'], pattern: 'heroic'
+                }
+            ];
+
+            levelDefs.forEach((def, i) => {
+                const k = def.key;
+                const br = def.bassRoot;
+                const lead = [];
+                const bass = [];
+                const arp = [];
+                const drum = [];
+
+                // Generar 16 compases de melodía con patrones variados
+                const patterns = {
+                    bounce: () => {
+                        for (let m = 0; m < 4; m++) {
+                            lead.push({n:k[0+m],t:0.5},{n:k[2+m],t:0.5},{n:k[4],t:0.5},{n:k[2+m],t:0.5});
+                            lead.push({n:k[5],t:0.5},{n:k[3],t:0.25},{n:k[4],t:0.25},{n:k[2],t:0.5},{n:k[m],t:0.5});
+                        }
+                    },
+                    funky: () => {
+                        for (let m = 0; m < 4; m++) {
+                            lead.push({n:k[m*2%8],t:0.25},{n:'REST',t:0.25},{n:k[(m*2+1)%8],t:0.25},{n:k[(m*2+2)%8],t:0.25});
+                            lead.push({n:k[(m*2+4)%8],t:0.5},{n:k[(m*2+3)%8],t:0.25},{n:'REST',t:0.25},{n:k[m%8],t:0.5},{n:'REST',t:0.5});
+                        }
+                    },
+                    driving: () => {
+                        for (let m = 0; m < 4; m++) {
+                            lead.push({n:k[m],t:0.25},{n:k[m],t:0.25},{n:k[m+2],t:0.25},{n:k[m+4],t:0.25});
+                            lead.push({n:k[m+4],t:0.5},{n:k[m+2],t:0.25},{n:k[m],t:0.25},{n:k[m+1],t:0.5},{n:'REST',t:0.5});
+                        }
+                    },
+                    mysterious: () => {
+                        for (let m = 0; m < 4; m++) {
+                            lead.push({n:k[m],t:1},{n:k[m+2],t:0.5},{n:k[m+1],t:0.5});
+                            lead.push({n:k[m+4],t:0.5},{n:'REST',t:0.5},{n:k[m+3],t:0.5},{n:k[m],t:0.5});
+                        }
+                    },
+                    epic: () => {
+                        for (let m = 0; m < 4; m++) {
+                            lead.push({n:k[m+4],t:1},{n:k[m+3],t:0.5},{n:k[m+2],t:0.5});
+                            lead.push({n:k[m],t:0.5},{n:k[m+2],t:0.5},{n:k[m+4],t:0.5},{n:k[m+5>7?7:m+5],t:0.5});
+                        }
+                    },
+                    chase: () => {
+                        for (let m = 0; m < 4; m++) {
+                            lead.push({n:k[m],t:0.25},{n:k[m+1],t:0.25},{n:k[m+2],t:0.25},{n:k[m+3],t:0.25});
+                            lead.push({n:k[m+4],t:0.25},{n:k[m+3],t:0.25},{n:k[m+2],t:0.25},{n:k[m+1],t:0.25});
+                            lead.push({n:k[m],t:0.5},{n:k[m+4],t:0.5});
+                        }
+                    },
+                    strategic: () => {
+                        for (let m = 0; m < 4; m++) {
+                            lead.push({n:k[m],t:0.5},{n:'REST',t:0.5},{n:k[m+2],t:0.5},{n:k[m+4],t:0.5});
+                            lead.push({n:k[m+3],t:1},{n:k[m+1],t:0.5},{n:k[m],t:0.5});
+                        }
+                    },
+                    danger: () => {
+                        for (let m = 0; m < 4; m++) {
+                            lead.push({n:k[m],t:0.25},{n:k[m],t:0.25},{n:'REST',t:0.25},{n:k[m+3],t:0.25});
+                            lead.push({n:k[m+4],t:0.5},{n:k[m+2],t:0.5},{n:k[m],t:0.5},{n:'REST',t:0.5});
+                        }
+                    },
+                    frozen: () => {
+                        for (let m = 0; m < 4; m++) {
+                            lead.push({n:k[m+4],t:1},{n:k[m+2],t:0.5},{n:k[m],t:0.5});
+                            lead.push({n:k[m+1],t:0.5},{n:k[m+3],t:0.5},{n:k[m+4],t:0.5},{n:'REST',t:0.5});
+                        }
+                    },
+                    heroic: () => {
+                        const hk = k.length > 8 ? k : k;
+                        for (let m = 0; m < 4; m++) {
+                            lead.push({n:hk[m%hk.length],t:0.25},{n:hk[(m+2)%hk.length],t:0.25},{n:hk[(m+4)%hk.length],t:0.5});
+                            lead.push({n:hk[(m+6)%hk.length],t:0.5},{n:hk[(m+4)%hk.length],t:0.25},{n:hk[(m+2)%hk.length],t:0.25});
+                            lead.push({n:hk[(m+7)%hk.length],t:0.5},{n:hk[(m+5)%hk.length],t:0.5});
+                        }
+                    }
+                };
+
+                // Generar lead
+                if (patterns[def.pattern]) patterns[def.pattern]();
+
+                // Generar bass pulsante
+                for (let m = 0; m < 8; m++) {
+                    const root = br[m % br.length];
+                    bass.push({n:root,t:0.5},{n:root.replace(/\d/,n=>parseInt(n)+1),t:0.5});
+                    bass.push({n:root,t:0.5},{n:root.replace(/\d/,n=>parseInt(n)+1),t:0.5});
+                }
+
+                // Generar arpegios
+                for (let m = 0; m < 8; m++) {
+                    arp.push(
+                        {n:k[0],t:0.25},{n:k[2],t:0.25},{n:k[4],t:0.25},{n:k[2],t:0.25}
+                    );
+                }
+
+                // Generar drums con variación progresiva según nivel
+                const intensity = Math.min(1 + i * 0.1, 2);
+                for (let m = 0; m < 8; m++) {
+                    if (m % 2 === 0) {
+                        drum.push({d:'K',t:0.5},{d:'H',t:0.5},{d:'S',t:0.5},{d:'H',t:0.5});
+                    } else {
+                        drum.push({d:'K',t:0.5},{d:'H',t:0.25},{d:'H',t:0.25},{d:'S',t:0.5},{d:'H',t:0.25},{d:'K',t:0.25});
+                    }
+                }
+
+                SONG_DATA['level' + (i + 1)] = { tempo: def.tempo, swing: 0.01, lead, bass, arp, drum };
+            });
+        })();
+
+        // ---- Reproductor BGM multi-canal ----
+        function playBGM(melodyName) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            stopBGM();
+            
+            const song = SONG_DATA[melodyName] || SONG_DATA.menu;
+            if (!song) return;
+
+            bgmChannels = {
+                lead: song.lead || [],
+                bass: song.bass || [],
+                arp: song.arp || [],
+                drum: song.drum || []
+            };
+            bgmSteps = { lead: 0, bass: 0, arp: 0, drum: 0 };
+            currentTempo = song.tempo || 150;
+            swingAmount = song.swing || 0;
+            isBgmPlaying = true;
+            nextNoteTime = audioCtx.currentTime + 0.05;
+            
+            // Arrancamos los 4 canales con schedulers independientes
+            schedulerLoop();
+        }
+
+        function schedulerLoop() {
+            if (!isBgmPlaying) return;
+            const beatDur = 60 / currentTempo;
+            const lookAhead = 0.12; // segundos de anticipación
+
+            while (nextNoteTime < audioCtx.currentTime + lookAhead) {
+                // Encontrar el siguiente evento más cercano entre todos los canales
+                let minDur = Infinity;
+
+                // LEAD
+                if (bgmChannels.lead.length > 0) {
+                    const s = bgmChannels.lead[bgmSteps.lead];
+                    const dur = s.t * beatDur;
+                    if (s.n !== 'REST' && NOTES[s.n]) {
+                        chipNote(NOTES[s.n], 'square', nextNoteTime, dur * 0.9, 0.12, 0);
+                    }
+                    if (dur < minDur) minDur = dur;
+                    bgmSteps.lead = (bgmSteps.lead + 1) % bgmChannels.lead.length;
+                }
+
+                // BASS
+                if (bgmChannels.bass.length > 0) {
+                    const s = bgmChannels.bass[bgmSteps.bass];
+                    const dur = s.t * beatDur;
+                    if (s.n !== 'REST' && NOTES[s.n]) {
+                        chipNote(NOTES[s.n], 'triangle', nextNoteTime, dur * 0.85, 0.14, 0);
+                    }
+                    bgmSteps.bass = (bgmSteps.bass + 1) % bgmChannels.bass.length;
+                }
+
+                // ARP
+                if (bgmChannels.arp.length > 0) {
+                    const s = bgmChannels.arp[bgmSteps.arp];
+                    const dur = s.t * beatDur;
+                    if (s.n !== 'REST' && NOTES[s.n]) {
+                        chipNote(NOTES[s.n], 'square', nextNoteTime, dur * 0.5, 0.04, 7);
+                    }
+                    bgmSteps.arp = (bgmSteps.arp + 1) % bgmChannels.arp.length;
+                }
+
+                // DRUM
+                if (bgmChannels.drum.length > 0) {
+                    const s = bgmChannels.drum[bgmSteps.drum];
+                    const dur = s.t * beatDur;
+                    if (s.d && s.d !== 'R') {
+                        const dtype = s.d === 'K' ? 'kick' : (s.d === 'S' ? 'snare' : 'hihat');
+                        drumHit(dtype, nextNoteTime);
+                    }
+                    bgmSteps.drum = (bgmSteps.drum + 1) % bgmChannels.drum.length;
+                }
+
+                // Avanzar el tiempo por el step más corto del lead (o por defecto 0.5 beats)
+                const stepDur = bgmChannels.lead.length > 0
+                    ? bgmChannels.lead[(bgmSteps.lead - 1 + bgmChannels.lead.length) % bgmChannels.lead.length].t * beatDur
+                    : 0.5 * beatDur;
+                nextNoteTime += stepDur + (Math.random() < 0.5 ? swingAmount : 0);
+            }
+
+            bgmTimeout = setTimeout(schedulerLoop, 20);
+        }
+
+        // --- FUNCIONES DE NAVEGACIÓN ---
+        function showScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        function startGame() {
+            soundClick();
+            playBGM('menu');
+            // Intentar cargar progreso guardado
+            const saved = localStorage.getItem('montaneroSave');
+            if (saved) {
+                gameState = JSON.parse(saved);
+                goToMap();
+            } else {
+                showScreen('screen-avatar');
+            }
+        }
+
+        function selectAvatar(type) {
+            soundClick();
+            document.querySelectorAll('.avatar-card').forEach(c => c.classList.remove('selected'));
+            document.getElementById('avatar-' + type).classList.add('selected');
+            gameState.avatar = type === 'boy' ? '👦🏻' : '👧🏽';
+            document.getElementById('btn-confirm-avatar').style.display = 'block';
+        }
+
+        function goToMap() {
+            soundClick();
+            playBGM('menu');
+            localStorage.setItem('montaneroSave', JSON.stringify(gameState));
+            showScreen('screen-map');
+            document.getElementById('current-avatar-display').innerText = gameState.avatar;
+
+            const list = document.getElementById('level-list');
+            list.innerHTML = '';
+
+            LEVELS.forEach(lvl => {
+                let status = 'bloqueado 🔒';
+                let className = 'level-btn disabled';
+                let onclick = '';
+
+                if (lvl.id <= gameState.unlockedLevel) {
+                    status = lvl.id < gameState.unlockedLevel ? 'COMPLETADO 🏆' : 'DESBLOQUEADO 🔓';
+                    className = lvl.id < gameState.unlockedLevel ? 'level-btn completed' : 'level-btn unlocked';
+                    onclick = `onclick="loadLevel(${lvl.id})"`;
+                }
+
+                list.innerHTML += `<button class="${className}" ${onclick}>
+                <span>${lvl.title}</span> <span>${status}</span>
+            </button>`;
+            });
+        }
+
+        function loadLevel(id) {
+            soundClick();
+            currentLevelPlaying = id;
+            const lvl = LEVELS[id];
+            document.getElementById('lore-title').innerText = lvl.title;
+            document.getElementById('lore-text').innerText = lvl.lore;
+            showScreen('screen-lore');
+        }
+
+        function resetGame() {
+            if(confirm("¿Estás seguro de que quieres borrar tu progreso y reiniciar el juego?")) {
+                soundClick();
+                localStorage.removeItem('montaneroSave');
+                gameState = {
+                    avatar: null,
+                    unlockedLevel: 0,
+                };
+                showScreen('screen-title');
+            }
+        }
+
+        // --- ESTADOS Y VARIABLES GLOBALES MINIJUEGOS ---
+        let score = 0;
+        let minigameTimer = null;
+        window.currentGameKeydown = null;
+        window.currentGameKeyup = null;
+        window.addEventListener('keydown', (e) => { if (window.currentGameKeydown) window.currentGameKeydown(e); });
+        window.addEventListener('keyup', (e) => { if (window.currentGameKeyup) window.currentGameKeyup(e); });
+
+        function startMiniGame() {
+            soundClick();
+            playBGM('level' + currentLevelPlaying);
+            const lvl = LEVELS[currentLevelPlaying];
+            if (!lvl.hasMinigame) {
+                startQuiz(); // Salta directo al quiz
+                return;
+            }
+
+            showScreen('screen-minigame');
+            score = 0;
+            if (gameLoop) clearInterval(gameLoop);
+            if (minigameTimer) clearTimeout(minigameTimer);
+            window.currentGameKeydown = null;
+            window.currentGameKeyup = null;
+            document.getElementById('btn-to-quiz').style.display = 'none';
+            const area = document.getElementById('minigame-area');
+            area.innerHTML = ''; // Limpiar
+            
+            // Router
+            switch(currentLevelPlaying) {
+                case 1: playLvl1(area); break;
+                case 2: playLvl2(area); break;
+                case 3: playLvl3(area); break;
+                case 4: playLvl4(area); break;
+                case 5: playLvl5(area); break;
+                case 6: playLvl6(area); break;
+                case 7: playLvl7(area); break;
+                case 8: playLvl8(area); break;
+                case 9: playLvl9(area); break;
+                case 10: playLvl10(area); break;
+            }
+        }
+
+        function minigameWin() {
+            if (gameLoop) clearInterval(gameLoop);
+            if (minigameTimer) clearTimeout(minigameTimer);
+            window.currentGameKeydown = null;
+            window.currentGameKeyup = null;
+            playBGM('win');
+            soundLevelUp();
+            document.getElementById('minigame-area').innerHTML += '<h2 style="color:var(--success-color); position:absolute; top:40%; left:0; right:0; text-align:center; background:#000; z-index:100; margin:0; padding:10px;">¡RETO SUPERADO!</h2>';
+            document.getElementById('btn-to-quiz').style.display = 'block';
+        }
+
+        function minigameLose() {
+            if (gameLoop) clearInterval(gameLoop);
+            if (minigameTimer) clearTimeout(minigameTimer);
+            window.currentGameKeydown = null;
+            window.currentGameKeyup = null;
+            playBGM('lose');
+            soundWrong();
+            document.getElementById('minigame-area').innerHTML += '<h2 style="color:var(--danger-color); position:absolute; top:40%; left:0; right:0; text-align:center; background:#000; z-index:100; margin:0; padding:10px;">GAME OVER</h2>';
+            setTimeout(startMiniGame, 2000);
+        }
+
+        // LEVEL 1: Atrapa Basura (Arcade)
+        function playLvl1(area) {
+            document.getElementById('minigame-title').innerText = "RETO L.N.T.";
+            document.getElementById('minigame-desc').innerText = "Recoge basura para sumar puntos. Esquiva hojas y rocas (restan puntos). Mueve la cesta rápido.";
+            area.innerHTML = `
+                <div id="score-board" style="z-index:10; position:absolute; top:5px; left:5px; font-size:12px;">SCORE: <span id="game-score">0</span>/20</div>
+                <div id="catcher" style="position:absolute; bottom:20px; left:40%; font-size:30px; transition:left 0.1s; touch-action:none;">🧺</div>
+            `;
+            area.style.touchAction = 'none';
+            let cPos = 40;
+            score = 0;
+
+            const moveHandler = (e) => {
+                e.preventDefault();
+                let clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                let rect = area.getBoundingClientRect();
+                let percent = ((clientX - rect.left) / rect.width) * 100;
+                cPos = Math.max(0, Math.min(80, percent - 5)); // Centrado
+                const catcher = document.getElementById('catcher');
+                if(catcher) {
+                    catcher.style.transition = 'none';
+                    catcher.style.left = cPos + '%';
+                }
+            };
+            
+            area.onmousemove = moveHandler;
+            area.ontouchmove = moveHandler;
+            area.onmousedown = moveHandler;
+            area.ontouchstart = moveHandler;
+
+            window.currentGameKeydown = (e) => {
+                if(e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+                    cPos = Math.max(0, Math.min(80, cPos - 8));
+                } else if(e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+                    cPos = Math.max(0, Math.min(80, cPos + 8));
+                }
+                const catcher = document.getElementById('catcher');
+                if(catcher) {
+                    catcher.style.transition = 'left 0.1s';
+                    catcher.style.left = cPos + '%';
+                }
+            };
+            
+            let itemsSpawned = 0;
+            let activeItems = [];
+            
+            gameLoop = setInterval(() => {
+                if (itemsSpawned >= 60 || score >= 20) {
+                    if (score >= 20) {
+                        clearInterval(gameLoop);
+                        minigameWin();
+                    } else if (itemsSpawned >= 60 && activeItems.length === 0) {
+                        clearInterval(gameLoop);
+                        minigameLose();
+                    }
+                    if(itemsSpawned >= 60) return;
+                }
+                const item = document.createElement('div');
+                item.className = 'item-drop';
+                item.style.position = 'absolute';
+                item.style.fontSize = '24px';
+                const isTrash = Math.random() > 0.4;
+                item.innerText = isTrash ? ['🍌', '🥤', '🧻'][Math.floor(Math.random()*3)] : ['🍁', '🪨'][Math.floor(Math.random()*2)];
+                const startX = Math.random() * 80;
+                item.style.left = startX + '%';
+                item.style.top = '-30px';
+                area.appendChild(item);
+                activeItems.push(item);
+
+                let pos = -30;
+                const fall = setInterval(() => {
+                    pos += 5;
+                    if(item) item.style.top = pos + 'px';
+                    
+                    // Collision check
+                    if (pos > 200 && pos < 270) {
+                        if (Math.abs(startX - cPos) < 15) {
+                            clearInterval(fall);
+                            item.remove();
+                            activeItems = activeItems.filter(i => i !== item);
+                            if(isTrash) { soundClick(); score++; }
+                            else { soundWrong(); score = Math.max(0, score-1); }
+                            document.getElementById('game-score').innerText = score;
+                        }
+                    }
+                    if (pos > 300) { 
+                        clearInterval(fall); 
+                        item.remove(); 
+                        activeItems = activeItems.filter(i => i !== item);
+                    }
+                }, 50);
+                itemsSpawned++;
+            }, 800);
+        }
+
+        // LEVEL 2: Capas (Time Attack)
+        function playLvl2(area) {
+            document.getElementById('minigame-title').innerText = "RETO 3 CAPAS";
+            document.getElementById('minigame-desc').innerText = "¡Rápido! Térmica -> Polar -> GoreTex antes de congelarte.";
+            area.innerHTML = `
+                <div style="text-align:center; margin-top:10px; position:relative;">
+                    <div id="frost-overlay" style="position:absolute; top:-50px; left:-50px; right:-50px; bottom:-50px; background:rgba(100,200,255,0); pointer-events:none; transition:background 3s; z-index:5;"></div>
+                    <div id="avatar-preview" class="anim-shiver" style="font-size:50px; margin-bottom:10px; transition:transform 0.1s;">🥶</div>
+                    <div style="width:100%; height:10px; background:#444; margin-bottom:15px;"><div id="freeze-bar" style="width:100%; height:100%; background:#60a5fa; transition:width 0.1s;"></div></div>
+                    <div style="display:flex; flex-direction:column; gap:10px; padding:0 20px; position:relative; z-index:10;">
+                        <button class="btn" style="margin:0;" onclick="checkLayer(2)" ontouchend="event.preventDefault(); checkLayer(2)">Forro Polar</button>
+                        <button class="btn" style="margin:0;" onclick="checkLayer(3)" ontouchend="event.preventDefault(); checkLayer(3)">GoreTex</button>
+                        <button class="btn" style="margin:0;" onclick="checkLayer(1)" ontouchend="event.preventDefault(); checkLayer(1)">Térmica</button>
+                    </div>
+                </div>
+            `;
+            window.currentLayer = 0;
+            let freezeTime = 100;
+            
+            minigameTimer = setInterval(() => {
+                freezeTime -= 2;
+                const fb = document.getElementById('freeze-bar');
+                if(fb) fb.style.width = Math.max(0, freezeTime) + '%';
+                const av = document.getElementById('avatar-preview');
+                if(av && freezeTime % 10 === 0) { av.style.transform = `translate(${Math.random()*4-2}px, ${Math.random()*4-2}px)`; }
+                
+                const fOverlay = document.getElementById('frost-overlay');
+                if(fOverlay) fOverlay.style.background = `rgba(180,220,255,${(100 - freezeTime)/150})`;
+                
+                if (freezeTime <= 0) { clearInterval(minigameTimer); minigameLose(); }
+            }, 100);
+
+            window.checkLayer = (layer) => {
+                if (layer === window.currentLayer + 1) {
+                    window.currentLayer++;
+                    soundClick();
+                    const av = document.getElementById('avatar-preview');
+                    if(layer === 1) av.innerText = '👕';
+                    if(layer === 2) av.innerText = '🧥';
+                    if(layer === 3) { av.innerText = '🏂'; clearInterval(minigameTimer); setTimeout(minigameWin, 500); }
+                } else {
+                    clearInterval(minigameTimer);
+                    minigameLose();
+                }
+            };
+        }
+
+        // LEVEL 3: Stamina (Action Catcher)
+        function playLvl3(area) {
+            document.getElementById('minigame-title').innerText = "EL BONKING";
+            document.getElementById('minigame-desc').innerText = "La energía cae en picado. ¡Caza la comida y agua voladora!";
+            area.innerHTML = `
+                <div style="text-align:center; padding:10px;">
+                    <p id="timer-text" style="font-size:12px; color:var(--accent-color);">Faltan 10 s</p>
+                    <div style="width:100%; height:15px; border:2px solid #fff; margin:10px auto; position:relative;">
+                        <div id="stamina-bar" style="width:100%; height:100%; background:var(--success-color); transition:width 0.1s;"></div>
+                    </div>
+                </div>
+                <div id="flying-area" style="position:relative; width:100%; height:200px; overflow:hidden; touch-action:none;">
+                     <div id="running-avatar" class="anim-run" style="position:absolute; bottom:10px; left:20px; font-size:40px;">${avatarEmoji('run')}</div>
+                </div>
+            `;
+            let stamina = 100;
+            let timeleft = 10;
+            
+            let activeItems = [];
+            gameLoop = setInterval(() => {
+                stamina -= 12;
+                const bar = document.getElementById('stamina-bar');
+                if(bar) {
+                    bar.style.width = Math.max(0, stamina) + '%';
+                    if(stamina < 30) bar.style.background = 'var(--danger-color)';
+                    else bar.style.background = 'var(--success-color)';
+                }
+                if (stamina <= 0) { minigameLose(); }
+
+                if (Math.random() > 0.4) {
+                    const item = document.createElement('div');
+                    item.style.position = 'absolute';
+                    item.style.fontSize = '30px';
+                    item.style.right = '-40px';
+                    item.style.top = (Math.random() * 140) + 'px';
+                    item.style.cursor = 'pointer';
+                    item.style.padding = '30px';
+                    item.style.margin = '-30px';
+                    item.style.userSelect = 'none';
+                    item.style.zIndex = '100';
+                    item.innerText = Math.random() > 0.5 ? '🥜' : '💧';
+                    
+                    item.onmousedown = item.ontouchstart = (e) => {
+                        e.preventDefault();
+                        soundClick();
+                        stamina = Math.min(100, stamina + 30);
+                        item.remove();
+                    };
+                    document.getElementById('flying-area').appendChild(item);
+                    
+                    let moveX = -40;
+                    const fly = setInterval(() => {
+                        moveX += 5;
+                        if(item) item.style.right = moveX + 'px';
+                        if(moveX > 400) { clearInterval(fly); item.remove(); }
+                    }, 50);
+                    activeItems.push({el: item, interval: fly});
+                }
+            }, 500);
+
+            minigameTimer = setInterval(() => {
+                timeleft--;
+                const ttext = document.getElementById('timer-text');
+                if(ttext) ttext.innerText = 'Faltan ' + timeleft + ' s';
+                if(timeleft <= 0 && stamina > 0) {
+                    activeItems.forEach(i => clearInterval(i.interval));
+                    minigameWin();
+                }
+            }, 1000);
+        }
+
+        // LEVEL 4: Navigation (Wind Balance)
+        function playLvl4(area) {
+            document.getElementById('minigame-title').innerText = "VÉRTIGO Y VIENTO";
+            document.getElementById('minigame-desc').innerText = "Viento fuerte a la derecha (>). Mantén pulsado para girar a la izquierda (<) y mantén el mapa equilibrado por 3s.";
+            area.innerHTML = `
+                <div style="text-align:center; padding:10px;">
+                    <div style="font-size:16px; margin-bottom:10px; color:var(--success-color);" id="nav-target">OBJETIVO: ±15º</div>
+                    <div id="map-img" style="font-size:80px; transform:rotate(90deg); margin:20px; transition:transform 0.1s; user-select:none;">🗺️</div>
+                    <div style="font-size:20px; margin-bottom:20px;" id="nav-deg">90º</div>
+                    <div style="display:flex; justify-content:center; gap:20px; padding:0 30px;">
+                        <button class="btn" id="btn-force" style="padding:20px; user-select:none;">Hacer Fuerza</button>
+                    </div>
+                </div>
+            `;
+            let rot = 90;
+            let stableTime = 0;
+            let isHolding = false;
+            
+            const btnForce = document.getElementById('btn-force');
+            if(btnForce) {
+                btnForce.style.touchAction = 'none';
+                btnForce.onpointerdown = (e) => {
+                    e.preventDefault();
+                    isHolding = true;
+                    btnForce.setPointerCapture(e.pointerId);
+                    btnForce.style.transform = 'translate(4px, 4px)';
+                    btnForce.style.boxShadow = '0px 0px 0px #000';
+                };
+                btnForce.onpointerup = (e) => {
+                    e.preventDefault();
+                    isHolding = false;
+                    btnForce.releasePointerCapture(e.pointerId);
+                    btnForce.style.transform = '';
+                    btnForce.style.boxShadow = '';
+                };
+                btnForce.onpointercancel = (e) => {
+                    isHolding = false;
+                    btnForce.style.transform = '';
+                    btnForce.style.boxShadow = '';
+                };
+                btnForce.oncontextmenu = (e) => e.preventDefault();
+            }
+
+            window.currentGameKeydown = (e) => {
+                if(e.key === ' ' || e.key === 'Enter') {
+                    e.preventDefault();
+                    isHolding = true;
+                    if(btnForce) {
+                        btnForce.style.transform = 'translate(4px, 4px)';
+                        btnForce.style.boxShadow = '0px 0px 0px #000';
+                    }
+                }
+            };
+            window.currentGameKeyup = (e) => {
+                if(e.key === ' ' || e.key === 'Enter') {
+                    e.preventDefault();
+                    isHolding = false;
+                    if(btnForce) {
+                        btnForce.style.transform = '';
+                        btnForce.style.boxShadow = '';
+                    }
+                }
+            };
+
+            function updateMap() {
+                const mapImg = document.getElementById('map-img');
+                const navDeg = document.getElementById('nav-deg');
+                if(mapImg) mapImg.style.transform = `rotate(${rot}deg)`;
+                if(navDeg) {
+                    navDeg.innerText = `${rot}º`;
+                    if(Math.abs(rot) <= 15) navDeg.style.color = 'var(--success-color)';
+                    else navDeg.style.color = '#fff';
+                }
+            }
+
+            gameLoop = setInterval(() => {
+                if (isHolding) {
+                    rot -= 10; // Fuerza a la izquierda
+                } else {
+                    rot += 8; // Viento a la derecha
+                }
+                
+                rot = Math.max(-90, Math.min(90, rot));
+                
+                updateMap();
+            }, 100);
+            
+            minigameTimer = setInterval(() => {
+                if(Math.abs(rot) <= 15) stableTime++;
+                else { stableTime = 0; }
+                
+                if(stableTime >= 3) {
+                    minigameWin();
+                } else if (stableTime > 0) {
+                    soundClick(); 
+                }
+            }, 1000);
+        }
+
+        // LEVEL 5: Tormenta y Refugio (Red Light Green Light)
+        function playLvl5(area) {
+            document.getElementById('minigame-title').innerText = "TORMENTA ELÉCTRICA";
+            document.getElementById('minigame-desc').innerText = "MANTÉN PULSADA la pantalla para caminar. Si el fondo parpadea amarillo (⚠️), SUELTA rápido para agacharte o el rayo (⚡) te fulminará.";
+            area.innerHTML = `
+                <div id="storm-bg" style="position:absolute; top:0; left:0; width:100%; height:100%; background:transparent; transition:background 0.2s; z-index:1; pointer-events:none;"></div>
+                <div style="position:relative; z-index:5; width:100%; height:100%; display:flex; flex-direction:column; padding:10px; box-sizing:border-box;">
+                    <div style="font-size:12px; text-align:center; margin-bottom:10px;">REFUGIO: <span id="storm-dist-text">0</span>%</div>
+                    <div style="width:100%; height:10px; background:#444; border:2px solid #fff; margin-bottom:20px;">
+                        <div id="storm-bar" style="width:0%; height:100%; background:var(--success-color); transition:width 0.1s;"></div>
+                    </div>
+                    <div style="flex:1; position:relative; overflow:hidden; border-bottom:3px solid #666;">
+                        <div id="storm-runner" style="position:absolute; bottom:5px; left:10%; font-size:40px; transition:left 0.1s;">${avatarEmoji('walk')}</div>
+                        <div style="position:absolute; bottom:5px; right:10px; font-size:40px;">🛖</div>
+                        <div id="storm-flash" style="position:absolute; top:20px; left:0; width:100%; text-align:center; font-size:80px; opacity:0; transition:opacity 0.1s; pointer-events:none;">⚡</div>
+                    </div>
+                    <div style="text-align:center; margin-top:20px; font-size:10px; color:#aaa;" id="storm-status">MANTÉN PULSADO PARA CAMINAR</div>
+                    <button class="btn" style="margin-top:20px; padding:25px; font-size:18px;" id="storm-btn">PULSAR AQUÍ</button>
+                </div>
+            `;
+            
+            let dist = 10; // Start at 10%
+            let isWalking = false;
+            let isStriking = false;
+            
+            const handlerStart = (e) => { 
+                e.preventDefault(); 
+                if(!isStriking) { 
+                    isWalking = true; 
+                    document.getElementById('storm-runner').innerText = avatarEmoji('run'); 
+                    document.getElementById('storm-status').innerText = 'CAMINANDO...'; 
+                    document.getElementById('storm-status').style.color = 'var(--success-color)';
+                } 
+            };
+            const handlerEnd = (e) => { 
+                e.preventDefault(); 
+                isWalking = false; 
+                document.getElementById('storm-runner').innerText = avatarEmoji('kneel'); 
+                document.getElementById('storm-status').innerText = 'AGACHADO (SEGURO)'; 
+                document.getElementById('storm-status').style.color = '#aaa';
+            };
+            
+            area.style.touchAction = 'none';
+            area.onpointerdown = (e) => {
+                handlerStart(e);
+                area.setPointerCapture(e.pointerId);
+            };
+            area.onpointerup = (e) => {
+                handlerEnd(e);
+                area.releasePointerCapture(e.pointerId);
+            };
+            area.onpointercancel = handlerEnd;
+            area.oncontextmenu = (e) => e.preventDefault();
+
+            const btn = document.getElementById('storm-btn');
+            if(btn) {
+                btn.style.touchAction = 'none';
+                btn.onpointerdown = (e) => {
+                    handlerStart(e);
+                    btn.setPointerCapture(e.pointerId);
+                    btn.style.transform = 'translate(4px, 4px)';
+                    btn.style.boxShadow = '0px 0px 0px #000';
+                };
+                btn.onpointerup = (e) => {
+                    handlerEnd(e);
+                    btn.releasePointerCapture(e.pointerId);
+                    btn.style.transform = '';
+                    btn.style.boxShadow = '';
+                };
+                btn.onpointercancel = (e) => {
+                    handlerEnd(e);
+                    btn.style.transform = '';
+                    btn.style.boxShadow = '';
+                };
+                btn.oncontextmenu = (e) => e.preventDefault();
+            }
+
+            window.currentGameKeydown = (e) => {
+                if(e.key === ' ' || e.key === 'Enter') {
+                    handlerStart(e);
+                    if(btn) { btn.style.transform = 'translate(4px, 4px)'; btn.style.boxShadow = '0px 0px 0px #000'; }
+                }
+            };
+            window.currentGameKeyup = (e) => {
+                if(e.key === ' ' || e.key === 'Enter') {
+                    handlerEnd(e);
+                    if(btn) { btn.style.transform = ''; btn.style.boxShadow = ''; }
+                }
+            };
+
+            gameLoop = setInterval(() => {
+                if (isWalking && !isStriking) {
+                    dist += 1.5; 
+                    if(dist > 90) dist = 90; // visual cap
+                    document.getElementById('storm-bar').style.width = ((dist-10)/80*100) + '%';
+                    document.getElementById('storm-dist-text').innerText = Math.floor((dist-10)/80*100);
+                    document.getElementById('storm-runner').style.left = dist + '%';
+                    
+                    if(dist >= 90) {
+                        document.getElementById('storm-runner').innerText = avatarEmoji('stand');
+                        document.getElementById('storm-dist-text').innerText = '100';
+                        clearInterval(gameLoop);
+                        clearTimeout(minigameTimer);
+                        setTimeout(minigameWin, 500);
+                    }
+                }
+            }, 100);
+
+            function scheduleStorm() {
+                if(dist >= 90) return;
+                const delay = 2000 + Math.random() * 3000;
+                minigameTimer = setTimeout(() => {
+                    soundWrong();
+                    document.getElementById('storm-bg').style.background = 'rgba(202, 138, 4, 0.4)'; // Yellow warning
+                    document.getElementById('storm-status').innerText = '¡ALERTA DE RAYO!';
+                    document.getElementById('storm-status').style.color = 'var(--accent-color)';
+                    
+                    setTimeout(() => {
+                        isStriking = true;
+                        document.getElementById('storm-bg').style.background = 'rgba(248, 113, 113, 0.5)'; // Red flash
+                        document.getElementById('storm-flash').style.opacity = '1';
+                        playBeep(200, 'sawtooth', 0.5);
+                        
+                        if(isWalking) {
+                            document.getElementById('storm-runner').innerText = '💀';
+                            clearInterval(gameLoop);
+                            setTimeout(() => { minigameLose(); }, 1000);
+                        } else {
+                            setTimeout(() => {
+                                isStriking = false;
+                                document.getElementById('storm-bg').style.background = 'transparent';
+                                document.getElementById('storm-flash').style.opacity = '0';
+                                if(!isWalking) {
+                                    document.getElementById('storm-status').innerText = 'AGACHADO (SEGURO)';
+                                    document.getElementById('storm-status').style.color = '#aaa';
+                                } else {
+                                    document.getElementById('storm-status').innerText = 'CAMINANDO...';
+                                    document.getElementById('storm-status').style.color = 'var(--success-color)';
+                                }
+                                scheduleStorm();
+                            }, 1000);
+                        }
+                    }, 800 + Math.random() * 600); 
+                }, delay);
+            }
+            scheduleStorm();
+        }
+
+        // LEVEL 6: Parkour (Rock-a-mole)
+        function playLvl6(area) {
+            document.getElementById('minigame-title').innerText = "3 PUNTOS ALPINOS";
+            document.getElementById('minigame-desc').innerText = "Toca 5 presas VERDES rápido. No toques rojas ni falles al vacío (MÁX 1 fallo).";
+            
+            area.innerHTML = `
+                <div style="text-align:center; font-size:12px; margin-top:5px;">Puntos: <span id="pk-score" style="color:var(--success-color)">0</span>/5 | Fallos: <span id="pk-miss">0</span>/2</div>
+                <div id="holds-container" style="display:grid; grid-template-columns:repeat(4, 1fr); gap:10px; padding:20px; height:200px;"></div>
+            `;
+            const hc = document.getElementById('holds-container');
+            for(let i=0; i<12; i++) {
+                hc.innerHTML += `<div class="hold-cell" onmousedown="grabParkour(event, ${i})" ontouchstart="grabParkour(event, ${i})" style="background:#444; border-radius:5px; height:50px; display:flex; justify-content:center; align-items:center; font-size:30px; cursor:pointer; touch-action:none; -webkit-tap-highlight-color:transparent;"></div>`;
+            }
+            
+            let grabbed = 0;
+            let misses = 0;
+            let activeHolds = {};
+            
+            hc.onmousedown = hc.ontouchstart = (e) => {
+                if(e.target === hc) {
+                    e.preventDefault();
+                    registerMiss();
+                }
+            };
+
+            function registerMiss() {
+                soundWrong();
+                misses++;
+                const mm = document.getElementById('pk-miss');
+                if(mm) mm.innerText = misses;
+                if(misses >= 2) { 
+                    clearInterval(gameLoop); minigameLose(); 
+                }
+            }
+
+            window.grabParkour = (e, i) => {
+                if(e) e.preventDefault();
+                if(e) e.stopPropagation();
+                if(activeHolds[i]) {
+                    if(activeHolds[i].type === 'green') {
+                        soundClick();
+                        grabbed++;
+                        document.getElementById('pk-score').innerText = grabbed;
+                        clearHold(i);
+                        if(grabbed >= 5) { clearInterval(gameLoop); minigameWin(); }
+                    } else {
+                        registerMiss();
+                    }
+                } else {
+                    registerMiss();
+                }
+            };
+            
+            function clearHold(i) {
+                if(activeHolds[i]) clearTimeout(activeHolds[i].timeout);
+                delete activeHolds[i];
+                const cells = document.querySelectorAll('.hold-cell');
+                if(cells[i]) {
+                    cells[i].innerText = '';
+                    cells[i].style.animation = 'none';
+                    cells[i].style.background = '#444';
+                }
+            }
+
+            gameLoop = setInterval(() => {
+                if(Object.keys(activeHolds).length > 3) return;
+                
+                let idx;
+                do { idx = Math.floor(Math.random() * 12); } while(activeHolds[idx]);
+                
+                const isGreen = Math.random() > 0.4;
+                activeHolds[idx] = { type: isGreen ? 'green' : 'red' };
+                
+                const cells = document.querySelectorAll('.hold-cell');
+                cells[idx].innerText = '🪨';
+                if(isGreen) cells[idx].style.animation = 'flash-green 0.3s infinite';
+                else cells[idx].style.animation = 'flash-red 0.3s infinite';
+                
+                activeHolds[idx].timeout = setTimeout(() => {
+                    clearHold(idx);
+                }, 1500);
+            }, 600);
+        }
+
+        // LEVEL 7: Naismith (Math Rush)
+        function playLvl7(area) {
+            document.getElementById('minigame-title').innerText = "REGLA NAISMITH";
+            document.getElementById('minigame-desc').innerText = "Calcula la duración (4km=1h, 400m=1h). Resuelve 2 puzles para ganar.";
+            area.innerHTML = `
+                <div style="text-align:center; padding:10px;">
+                    <div style="font-size:24px; color:var(--success-color); margin-bottom:10px;" id="math-progress">0/2</div>
+                    <div style="width:100%; height:8px; background:#444; margin-bottom:15px;"><div id="math-timer-bar" style="height:100%; width:100%; background:var(--accent-color); transition:width 0.1s, background 0.3s;"></div></div>
+                    <p style="font-size:14px; margin-bottom:20px; line-height:1.6;" id="math-q">Cargando...</p>
+                    <div id="math-btns" style="display:flex; justify-content:center; flex-wrap:wrap; gap:10px; margin:20px 0;"></div>
+                </div>
+            `;
+            let problems = [
+                {q: "8km distancia, 800m desnivel.", a: 4, opts: [2, 3, 4, 6]},
+                {q: "12km distancia, flat (0m).", a: 3, opts: [2, 3, 4, 5]},
+                {q: "4km distancia, 1200m desnivel.", a: 4, opts: [3, 4, 5, 6]},
+                {q: "16km distancia, 400m desnivel.", a: 5, opts: [3, 4, 5, 7]}
+            ];
+            problems.sort(() => Math.random() - 0.5);
+            
+            let currentP = 0;
+            let timeleft = 30000;
+            
+            window.loadMath = () => {
+                if(currentP >= 2) { clearInterval(gameLoop); minigameWin(); return; }
+                const p = problems[currentP];
+                document.getElementById('math-progress').innerText = `${currentP}/2`;
+                document.getElementById('math-q').innerText = p.q;
+                const btns = document.getElementById('math-btns');
+                btns.innerHTML = '';
+                p.opts.forEach(o => {
+                    btns.innerHTML += `<button class="btn" style="width:40%; padding:10px;" onclick="guessMath(${o}, ${p.a})" ontouchend="event.preventDefault(); guessMath(${o}, ${p.a})">${o} h</button>`;
+                });
+            };
+
+            window.guessMath = (val, as) => {
+                if(val === as) {
+                    soundCorrect();
+                    currentP++;
+                    loadMath();
+                } else {
+                    soundWrong();
+                    timeleft -= 5000;
+                    const tbar = document.getElementById('math-timer-bar');
+                    if(tbar) {
+                        tbar.style.background = 'var(--danger-color)';
+                        setTimeout(() => { if(tbar) tbar.style.background = 'var(--accent-color)'; }, 300);
+                    }
+                }
+            };
+            
+            loadMath();
+            gameLoop = setInterval(() => {
+                timeleft -= 100;
+                const tbar = document.getElementById('math-timer-bar');
+                if(tbar) tbar.style.width = Math.max(0, (timeleft / 30000 * 100)) + '%';
+                if(timeleft <= 0) { clearInterval(gameLoop); minigameLose(); }
+            }, 100);
+        }
+
+        // LEVEL 8: Triage (Moving Patients)
+        function playLvl8(area) {
+            document.getElementById('minigame-title').innerText = "URGENCIAS";
+            document.getElementById('minigame-desc').innerText = "Selecciona herramienta y TOCA al paciente correcto mientras pasan.";
+            area.innerHTML = `
+                <div id="hospital-area" style="position:relative; width:100%; height:180px; overflow:hidden; border-bottom:2px solid #555; touch-action:none;"></div>
+                <div style="display:flex; justify-content:space-around; gap:5px; margin-top:10px;">
+                    <button class="btn too" data-tool="H" style="padding:15px; border-color:#888; color:#888; font-size:10px;">Manta☔</button>
+                    <button class="btn too" data-tool="A" style="padding:15px; border-color:#888; color:#888; font-size:10px;">Tape🩹</button>
+                    <button class="btn too" data-tool="E" style="padding:15px; border-color:#888; color:#888; font-size:10px;">Bota🥾</button>
+                </div>
+            `;
+            let selT = null;
+
+            // Tool selection with both click and touch
+            document.querySelectorAll('.too').forEach(btn => {
+                const handler = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    soundClick();
+                    selT = btn.getAttribute('data-tool');
+                    document.querySelectorAll('.too').forEach(b => { b.style.borderColor='#888'; b.style.color='#888'; });
+                    btn.style.borderColor='var(--accent-color)';
+                    btn.style.color='var(--accent-color)';
+                };
+                btn.addEventListener('click', handler);
+                btn.addEventListener('touchend', handler);
+            });
+
+            let patients = [
+                {id: 'A', icon: '🔥', label: 'Ampolla'},
+                {id: 'E', icon: '🦶', label: 'Esguince'},
+                {id: 'H', icon: '🥶', label: 'Hipoter.'}
+            ];
+            patients.sort(() => Math.random() - 0.5);
+            let spawned = 0;
+            let cured = 0;
+            let activeIntervals = [];
+            let gameOver = false;
+            
+            gameLoop = setInterval(() => {
+                if(spawned >= 3) { clearInterval(gameLoop); return; }
+                const p = patients[spawned];
+                const pt = document.createElement('div');
+                pt.style.cssText = 'position:absolute; right:-80px; top:' + (10 + Math.random() * 80) + 'px; text-align:center; cursor:pointer; padding:10px; touch-action:none; user-select:none; -webkit-touch-callout:none; z-index:5;';
+                pt.innerHTML = `<div style="font-size:40px; pointer-events:none;">${p.icon}</div><div style="font-size:10px; pointer-events:none; margin-top:2px;">${p.label}</div>`;
+                
+                const patientHandler = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if(gameOver) return;
+                    if(!selT) { soundWrong(); return; }
+                    if(selT === p.id) {
+                        soundCorrect();
+                        pt.remove();
+                        cured++;
+                        if(cured >= 3) {
+                            gameOver = true;
+                            activeIntervals.forEach(i => clearInterval(i));
+                            minigameWin();
+                        }
+                    } else {
+                        gameOver = true;
+                        activeIntervals.forEach(i => clearInterval(i));
+                        minigameLose();
+                    }
+                };
+                pt.addEventListener('mousedown', patientHandler);
+                pt.addEventListener('touchstart', patientHandler, {passive: false});
+                
+                document.getElementById('hospital-area').appendChild(pt);
+                let x = -80;
+                const walk = setInterval(() => {
+                    if(gameOver) { clearInterval(walk); return; }
+                    x += 2;
+                    if(pt.parentNode) pt.style.right = x + 'px';
+                    if(x > 400) { clearInterval(walk); if(!gameOver) { gameOver = true; minigameLose(); } }
+                }, 40);
+                activeIntervals.push(walk);
+                spawned++;
+            }, 2000);
+            
+            minigameTimer = setTimeout(() => { if(!gameOver) { gameOver = true; minigameLose(); } }, 12000);
+        }
+
+        // LEVEL 9: ARVA (Limited Digs)
+        function playLvl9(area) {
+            document.getElementById('minigame-title').innerText = "BÚSQUEDA ARVA";
+            document.getElementById('minigame-desc').innerText = "Usa el ARVA 📡 para buscar y la PALA ⛏️ para excavar.";
+            area.innerHTML = `
+                <div style="margin-bottom:5px; text-align:center; font-size:10px;">
+                    Intentos: <span id="arva-energy" style="color:var(--danger-color);">5</span> | T: <span id="arva-timer">20</span>s
+                </div>
+                <div style="display:flex; justify-content:center; gap:10px; margin-bottom:10px;">
+                    <button id="btn-arva" class="btn" style="padding:10px; margin:0; border-color:var(--accent-color); color:var(--accent-color); font-size:10px;" onclick="setArvaMode('arva')" ontouchend="event.preventDefault(); setArvaMode('arva')">📡 ARVA</button>
+                    <button id="btn-pala" class="btn" style="padding:10px; margin:0; border-color:#888; color:#888; font-size:10px;" onclick="setArvaMode('pala')" ontouchend="event.preventDefault(); setArvaMode('pala')">⛏️ PALA</button>
+                </div>
+                <div id="snow-grid" style="display:grid; grid-template-columns:repeat(5, 1fr); gap:5px; padding:0 20px; align-content:center;"></div>
+            `;
+            const grid = document.getElementById('snow-grid');
+            let target = Math.floor(Math.random() * 25);
+            let energy = 5;
+            let currentMode = 'arva';
+            
+            window.setArvaMode = (mode) => {
+                soundClick();
+                currentMode = mode;
+                document.getElementById('btn-arva').style.borderColor = mode === 'arva' ? 'var(--accent-color)' : '#888';
+                document.getElementById('btn-arva').style.color = mode === 'arva' ? 'var(--accent-color)' : '#888';
+                document.getElementById('btn-pala').style.borderColor = mode === 'pala' ? 'var(--accent-color)' : '#888';
+                document.getElementById('btn-pala').style.color = mode === 'pala' ? 'var(--accent-color)' : '#888';
+            };
+
+            for(let i=0; i<25; i++) {
+                grid.innerHTML += `<div class="snow-cell" data-index="${i}" onmouseenter="arvaHover(${i})" onmousedown="cellInteract(event, ${i})" ontouchstart="cellInteract(event, ${i})" ontouchend="event.preventDefault()" style="background:#fff; border: 2px solid #ccc; height:35px; display:flex; justify-content:center; align-items:center; cursor:pointer; font-size:16px; user-select:none; -webkit-touch-callout:none; touch-action:none;">❄️</div>`;
+            }
+            
+            let lastHovered = -1;
+            window.arvaHover = (i) => {
+                if(currentMode !== 'arva') return;
+                if(lastHovered === i) return;
+                lastHovered = i;
+                playArvaSound(i);
+            };
+
+            window.cellInteract = (e, i) => {
+                if(e) e.preventDefault();
+                if(currentMode === 'arva') {
+                    arvaHover(i); // Update interaction if tapped directly
+                } else {
+                    digSnow(i); // Dig with pala
+                }
+            };
+            
+            grid.ontouchmove = (e) => {
+                e.preventDefault();
+                if(currentMode !== 'arva') return;
+                let touch = e.touches[0];
+                let el = document.elementFromPoint(touch.clientX, touch.clientY);
+                if(el && el.classList.contains('snow-cell')) {
+                    let i = parseInt(el.getAttribute('data-index'));
+                    if(!isNaN(i)) arvaHover(i);
+                }
+            };
+
+            function playArvaSound(i) {
+                const cells = document.querySelectorAll('.snow-cell');
+                if(cells[i].style.visibility === 'hidden') return;
+                
+                const tx = target % 5; const ty = Math.floor(target/5);
+                const ix = i % 5; const iy = Math.floor(i/5);
+                const dist = Math.abs(tx-ix) + Math.abs(ty-iy);
+                
+                if(dist === 0) playBeep(1600, 'square', 0.05);
+                else if(dist === 1) playBeep(1200, 'square', 0.1);
+                else if (dist <= 2) playBeep(800, 'square', 0.15);
+                else if (dist <= 4) playBeep(500, 'square', 0.2);
+                else playBeep(200, 'square', 0.3);
+            }
+
+            window.digSnow = (i) => {
+                if(energy <= 0) return;
+                
+                const cells = document.querySelectorAll('.snow-cell');
+                if(cells[i].style.visibility === 'hidden') return; 
+                
+                energy--;
+                document.getElementById('arva-energy').innerText = energy;
+                
+                if(i === target) {
+                    cells[i].innerText = '🧍';
+                    cells[i].style.background = 'var(--accent-color)';
+                    minigameWin();
+                } else {
+                    playBeep(100, 'sawtooth', 0.2); // Fail sound
+                    cells[i].style.visibility = 'hidden';
+                    if(energy <= 0 && i !== target) {
+                        minigameLose();
+                    }
+                }
+            };
+
+            let timeleft = 20;
+            minigameTimer = setInterval(() => { 
+                timeleft--;
+                const tm = document.getElementById('arva-timer');
+                if(tm) tm.innerText = timeleft;
+                if(timeleft <= 0) minigameLose();
+            }, 1000);
+        }
+
+        // LEVEL 10: SOS (Timing Sequence)
+        function playLvl10(area) {
+            document.getElementById('minigame-title').innerText = "SEÑAL AL HELICÓPTERO";
+            document.getElementById('minigame-desc').innerText = "Forma 'Y' (SÍ) SOLO cuando el helicóptero pase por la ZONA VERDE.";
+            area.innerHTML = `
+                <div style="position:relative; width:100%; height:80px; background:#111; margin-top:10px; overflow:hidden;">
+                    <div id="heli-zone" style="position:absolute; top:0; left:35%; width:30%; height:100%; background:rgba(74,222,128,0.3); border-left:2px dashed var(--success-color); border-right:2px dashed var(--success-color);"></div>
+                    <div id="heli-sprite" style="position:absolute; top:10px; left:-50px; font-size:40px; transform:scaleX(-1);">🚁</div>
+                </div>
+                <div style="text-align:center;">
+                    <div id="sos-avatar" style="font-size:60px; margin:10px; transition:transform 0.1s;">${avatarEmoji('stand')}</div>
+                    <div style="display:flex; justify-content:center;">
+                        <button class="btn" style="width:60%; padding:20px; font-size:20px; touch-action:manipulation;" onmousedown="poseY(event)" ontouchstart="poseY(event)">Formar Y</button>
+                    </div>
+                </div>
+            `;
+            let hPos = -20;
+            let hDir = 1;
+            let success = 0;
+            
+            // Animación heli
+            gameLoop = setInterval(() => {
+                hPos += hDir * 4; // speed 
+                if(hPos > 110) { hDir = -1; hPos = 110; document.getElementById('heli-sprite').style.transform = 'scaleX(1)'; }
+                if(hPos < -20) { hDir = 1; hPos = -20; document.getElementById('heli-sprite').style.transform = 'scaleX(-1)'; }
+                
+                const heli = document.getElementById('heli-sprite');
+                if(heli) heli.style.left = hPos + '%';
+            }, 30);
+
+            window.poseY = (e) => {
+                if(e) e.preventDefault();
+                document.getElementById('sos-avatar').innerText = avatarEmoji('ypose');
+                setTimeout(() => { const av = document.getElementById('sos-avatar'); if(av) av.innerText = avatarEmoji('stand'); }, 200);
+                
+                // Zona verde entre 30% y 65% aprox
+                if(hPos >= 30 && hPos <= 65) {
+                    soundCorrect();
+                    success++;
+                    if(success >= 3) { clearInterval(gameLoop); clearTimeout(minigameTimer); minigameWin(); }
+                } else {
+                    clearInterval(gameLoop);
+                    clearTimeout(minigameTimer);
+                    minigameLose();
+                }
+            };
+            
+            minigameTimer = setTimeout(() => { clearInterval(gameLoop); minigameLose(); }, 15000);
+        }
+
+        // --- SISTEMA DE QUIZ ---
+        function startQuiz() {
+            soundClick();
+            playBGM('quiz');
+            const lvl = LEVELS[currentLevelPlaying];
+
+            // Añadir preguntas extra al pool de forma dinámica si aún no se han añadido
+            if (lvl.quiz.length === 2) {
+                const extras = [
+                    [ { q: "¿Por qué se dice que la montaña es un 'mundo abierto'?", options: ["Porque es gratis", "Porque tú decides tu camino, pero hay consecuencias", "Porque puedes ir en coche"], correct: 1 }, { q: "¿Qué actitud NO debes tener en la montaña?", options: ["Esperar que otros te resuelvan los problemas mágicamente", "Llevar mucha agua", "Caminar despacio"], correct: 0 } ],
+                    [ { q: "¿Qué incluye el parche LNT 2.0 (Leave No Trace)?", options: ["Llevarte tu basura, incluso la orgánica", "Solo recoger plástico", "Quemar la basura"], correct: 0 }, { q: "¿Por qué el Geotagging en redes puede ser negativo?", options: ["Porque gasta batería", "Porque atrae masificaciones a lugares frágiles sin preparación", "Porque rompe la cámara"], correct: 1 } ],
+                    [ { q: "¿Qué material es ideal para la Primera Capa (Térmica)?", options: ["Algodón puro", "Lana Merino o fibras sintéticas", "Plástico"], correct: 1 }, { q: "¿Cuál es el peligro del Gorpcore (moda montañera)?", options: ["Que la ropa es muy fea", "Priorizar la estética sobre la funcionalidad real en condiciones adversas", "Que hace mucho ruido"], correct: 1 } ],
+                    [ { q: "¿Qué significa sufrir un 'Bonking' o 'pájara'?", options: ["Quedarse sin glucógeno y sin energía de golpe", "Perderse en el bosque", "Asustarse con un pájaro"], correct: 0 }, { q: "¿Qué debes beber para evitar la hiponatremia?", options: ["Solo agua destilada", "Agua con sales minerales o electrolitos", "Café frío"], correct: 1 } ],
+                    [ { q: "¿Por qué es importante llevar un mapa de papel?", options: ["Para encender fuego", "Porque no se queda sin batería ni pierde cobertura", "Para taparse del sol"], correct: 1 }, { q: "Si el GPS del móvil falla y estás perdido, ¿cuál es el primer paso de S.T.O.P.?", options: ["Stop (Parar y evitar empeorar la situación)", "Plan (Diseñar un plan rápido)", "Correr para buscar ayuda"], correct: 0 } ],
+                    [ { q: "¿Qué es el gradiente térmico?", options: ["La temperatura baja a medida que ganas altitud", "El cambio de humedad en verano", "La velocidad del viento"], correct: 0 }, { q: "¿Qué indican las nubes Lenticulares?", options: ["Que va a nevar seguro", "Presencia de vientos muy fuertes en altura", "Que el día será muy soleado"], correct: 1 } ],
+                    [ { q: "¿Qué es el 'ritmo diésel'?", options: ["Correr muy rápido para acabar pronto", "Un ritmo constante que te permite hablar sin quedarte sin aliento", "Ir parando cada 5 minutos"], correct: 1 }, { q: "¿Para qué sirven principalmente los bastones en las bajadas?", options: ["Para proteger las rodillas y dar estabilidad extra", "Solo para apartar ramas", "Para defendernos de animales"], correct: 0 } ],
+                    [ { q: "¿Qué es la 'Fiebre de la Cumbre'?", options: ["Una enfermedad viral", "La obsesión por llegar arriba ignorando el cansancio o el mal tiempo", "Ganas de sacar fotos"], correct: 1 }, { q: "¿Qué es una 'Safe Word' u 'Hora de retorno'?", options: ["Una palabra graciosa", "Una hora límite innegociable fijada antes de salir, para dar la vuelta", "La hora a la que anochece"], correct: 1 } ],
+                    [ { q: "¿Qué debes hacer ante el primer síntoma de roce ('Hot Spot') en el pie?", options: ["Ignorarlo", "Parar inmediatamente y aplicar Tape (esparadrapo)", "Cambiar calcetines"], correct: 1 }, { q: "Un síntoma grave de los UMBLES (Hipotermia) es:", options: ["Balbucear, arrastrar los pies y perder motricidad", "Sudar mucho", "Estar muy activo y nervioso"], correct: 0 } ],
+                    [ { q: "¿Qué es el 'Efecto Trineo'?", options: ["Bajar disfrutando con un plástico", "Deslizar sin control sobre la nieve dura si caes y no sabes autodetenerte", "La inercia de la mochila pesada"], correct: 1 }, { q: "¿De qué se compone el 'tridente vital' antiavalanchas?", options: ["GoreTex, botas y crampones", "Móvil, silbato y espejo", "ARVA, pala y sonda"], correct: 2 } ],
+                    [ { q: "¿Cuándo funciona la llamada de emergencia al 112 desde tu móvil?", options: ["Solo si tengo saldo", "Incluso sin PIN o sin SIM, mientras haya cobertura de cualquier operadora", "Solo con mi compañía"], correct: 1 }, { q: "¿Qué es el 'LZ' (Landing Zone) en un rescate?", options: ["El lugar donde perdiste algo", "La zona de aterrizaje limpia y plana para el helicóptero", "El botiquín"], correct: 1 } ]
+                ];
+                if (extras[currentLevelPlaying]) {
+                    lvl.quiz.push(...extras[currentLevelPlaying]);
+                }
+            }
+
+            // Aleatorizar el pool y escoger 2
+            let pool = [...lvl.quiz].sort(() => 0.5 - Math.random());
+            quizState.questions = pool.slice(0, 2);
+            quizState.currentQ = 0;
+            quizState.score = 0;
+            showScreen('screen-quiz');
+            renderQuestion();
+        }
+
+        function renderQuestion() {
+            document.getElementById('btn-next-quiz').style.display = 'none';
+            const q = quizState.questions[quizState.currentQ];
+            document.getElementById('quiz-question').innerText = q.q;
+            const optionsDiv = document.getElementById('quiz-options');
+            optionsDiv.innerHTML = '';
+
+            q.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'quiz-option';
+                btn.innerText = opt;
+                btn.onclick = () => answerQuestion(idx, q.correct, btn);
+                optionsDiv.appendChild(btn);
+            });
+        }
+
+        function answerQuestion(selected, correct, btnElement) {
+            const buttons = document.querySelectorAll('.quiz-option');
+            buttons.forEach(b => b.onclick = null); // Desactiva clicks
+
+            if (selected === correct) {
+                soundCorrect();
+                btnElement.classList.add('correct');
+                quizState.score++;
+            } else {
+                soundWrong();
+                btnElement.classList.add('wrong');
+                buttons[correct].classList.add('correct'); // Muestra la buena
+            }
+            document.getElementById('btn-next-quiz').style.display = 'block';
+        }
+
+        function nextQuestion() {
+            soundClick();
+            quizState.currentQ++;
+            if (quizState.currentQ < quizState.questions.length) {
+                renderQuestion();
+            } else {
+                // Fin del nivel
+                if (quizState.score === quizState.questions.length) {
+                    soundLevelUp();
+                    if (gameState.unlockedLevel === currentLevelPlaying) {
+                        gameState.unlockedLevel++;
+                        localStorage.setItem('montaneroSave', JSON.stringify(gameState));
+                    }
+                    if (currentLevelPlaying === 10) {
+                        playBGM('win');
+                        showScreen('screen-win');
+                    } else {
+                        alert("¡NIVEL SUPERADO! Has derrotado al Boss.");
+                        goToMap();
+                    }
+                } else {
+                    soundWrong();
+                    alert("Has fallado. Vuelve a leer el Lore y reintenta.");
+                    loadLevel(currentLevelPlaying);
+                }
+            }
+        }
+
+        // Global hover sound for active interactive elements
+        document.addEventListener('mouseover', function(e) {
+            if (e.target.closest && e.target.closest('.btn, .level-btn, .quiz-option, .avatar-card, .hold-cell, .snow-cell, .item-drop, .too')) {
+                const el = e.target.closest('.btn, .level-btn, .quiz-option, .avatar-card, .hold-cell, .snow-cell, .item-drop, .too');
+                if (!el.dataset.hovered) {
+                    soundHover();
+                    el.dataset.hovered = "true";
+                    setTimeout(() => { if(el) el.dataset.hovered = ""; }, 200);
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>
